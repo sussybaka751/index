@@ -161,6 +161,16 @@
   .time { font-size: 12px; color: #949ba4; font-weight: 400; }
   .text { color: #dbdee1; font-size: 15px; line-height: 1.375rem; word-break: break-word; }
   .edited-tag { font-size: 11px; color: #949ba4; margin-left: 4px; }
+  
+  /* REPLY REFERENCE STYLES */
+  .reply-reference {
+    font-size: 13px; color: #b5bac1; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; position: relative; cursor: pointer;
+  }
+  .reply-reference::before {
+    content: ''; position: absolute; left: -34px; top: 50%; width: 28px; height: 12px;
+    border-left: 2px solid #4e5058; border-top: 2px solid #4e5058; border-top-left-radius: 6px;
+  }
+  .reply-reference:hover { color: #dbdee1; }
 
   /* REACTIONS DISPLAY */
   .reactions-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
@@ -178,9 +188,17 @@
 
   /* INPUT AREA */
   #bottom { padding: 0 16px 24px 16px; position: relative; }
+  
+  .reply-banner {
+    background: #2b2d31; color: #b5bac1; font-size: 13px; padding: 8px 16px;
+    border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: -8px; z-index: 1; position: relative; font-weight: 500;
+  }
+  .reply-banner-close { cursor: pointer; color: #f23f43; font-weight: bold; font-size: 14px; }
+
   .input-wrapper { 
     background: #383a40; border-radius: 8px; padding: 0 16px; 
-    display: flex; align-items: center; gap: 16px; min-height: 44px;
+    display: flex; align-items: center; gap: 16px; min-height: 44px; z-index: 2; position: relative;
   }
   #message { flex: 1; background: transparent; color: #dbdee1; font-size: 15px; border: none; outline: none; padding: 11px 0; }
   #message::placeholder { color: #80848e; }
@@ -207,19 +225,12 @@
   }
   .menu-option:hover { background: #5865f2; color: white; }
 
-  /* MESSAGE CONTEXT MENU & HORIZONTAL EMOJI REEL */
+  /* MESSAGE CONTEXT MENU & EMOJI ARSENAL */
   .msg-context-menu {
     position: fixed; background: #232428; border: 1px solid #111214; 
     border-radius: 8px; padding: 6px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); 
     z-index: 1000; display: flex; flex-direction: column; gap: 4px; min-width: 150px;
   }
-
-  .horizontal-emoji-box {
-    display: flex; overflow-x: auto; gap: 6px; padding: 6px; max-width: 240px; 
-    background: #1e1f22; border-radius: 6px; scrollbar-width: thin;
-  }
-  .horizontal-emoji-box::-webkit-scrollbar { height: 4px; }
-  .horizontal-emoji-box::-webkit-scrollbar-thumb { background: #4e5058; border-radius: 4px; }
 
   .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 240px; padding: 4px; }
   .emoji-item { background: transparent; border: none; font-size: 20px; cursor: pointer; border-radius: 4px; padding: 4px; transition: background 0.15s; flex-shrink: 0; }
@@ -360,6 +371,12 @@
       <div id="emojiPicker" class="glass-popup hidden animate-pop" style="bottom: 80px;">
         <div id="emojiGrid" class="emoji-grid"></div>
       </div>
+      
+      <!-- New Reply Banner -->
+      <div id="replyBanner" class="reply-banner hidden">
+        <span>Replying to <b id="replyTargetName"></b></span>
+        <span id="closeReplyBanner" class="reply-banner-close">✖</span>
+      </div>
 
       <div class="input-wrapper">
         <div id="plusBtn" class="plus-btn" title="Add">+</div>
@@ -371,10 +388,11 @@
 
 <!-- MESSAGE CONTEXT MENU POPUP -->
 <div id="msgContextMenu" class="msg-context-menu hidden">
+  <button id="ctxReply" class="menu-option"><span>↩️</span> Reply</button>
   <button id="ctxEdit" class="menu-option"><span>✏️</span> Edit Message</button>
   <button id="ctxCopy" class="menu-option"><span>📋</span> Copy Text</button>
   <button id="ctxReact" class="menu-option"><span>😀</span> React</button>
-  <div id="reactEmojiBar" class="horizontal-emoji-box hidden"></div>
+  <div id="reactEmojiBar" class="emoji-grid hidden" style="background: #1e1f22; border-radius: 8px; margin-top: 4px;"></div>
 </div>
 
 <!-- MODALS -->
@@ -417,11 +435,12 @@ let activeThreads = new Set(["general-chat"]);
 let cachedMessages = [];
 let pendingLocalMessages = []; 
 let renderedMessageIds = new Set();
-let messageReactions = {}; // Stores reactions by msgId
+let messageReactions = {}; 
 
 let currentThreadKeys = "";
 let currentDmKeys = "";
-let activeContextMsg = null; // Stores target message for context menu
+let activeContextMsg = null; 
+let activeReplyTarget = null;
 
 const loginContainerEl = document.getElementById("login-container");
 const appEl = document.getElementById("app");
@@ -443,10 +462,15 @@ const emojiPicker = document.getElementById("emojiPicker");
 const emojiGrid = document.getElementById("emojiGrid");
 
 const msgContextMenu = document.getElementById("msgContextMenu");
+const ctxReply = document.getElementById("ctxReply");
 const ctxEdit = document.getElementById("ctxEdit");
 const ctxCopy = document.getElementById("ctxCopy");
 const ctxReact = document.getElementById("ctxReact");
 const reactEmojiBar = document.getElementById("reactEmojiBar");
+
+const replyBanner = document.getElementById("replyBanner");
+const replyTargetName = document.getElementById("replyTargetName");
+const closeReplyBanner = document.getElementById("closeReplyBanner");
 
 /* INITIALIZE EMOJI GRID & REACTION BAR */
 EMOJIS.forEach(emoji => {
@@ -461,14 +485,16 @@ EMOJIS.forEach(emoji => {
   };
   emojiGrid.appendChild(btn);
 
-  // Reaction Bar (Horizontal Scroll)
+  // Reaction Arsenal (Grid)
   const reactBtn = document.createElement("button");
   reactBtn.className = "emoji-item";
   reactBtn.innerText = emoji;
   reactBtn.onclick = (e) => {
     e.stopPropagation();
-    if (activeContextMsg && activeContextMsg.id) {
-      addReaction(activeContextMsg.id, emoji);
+    if (activeContextMsg) {
+      const rawId = activeContextMsg.id || `${activeContextMsg.username}_${activeContextMsg.created_at}_${(activeContextMsg.message || '').substring(0, 15)}`;
+      const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      addReaction(msgId, emoji);
     }
     msgContextMenu.classList.add("hidden");
   };
@@ -509,9 +535,12 @@ fileInput.onchange = async () => {
       username: username,
       message: `Uploading ${file.name}...`,
       target_dm: target_dm,
+      reply_to: activeReplyTarget ? activeReplyTarget.id : "",
       created_at: new Date().toISOString()
     };
     pendingLocalMessages.push(localMsg);
+    
+    clearReplyState();
     renderMessages();
 
     try {
@@ -522,7 +551,8 @@ fileInput.onchange = async () => {
         fileName: file.name,
         fileType: file.type,
         fileData: base64Data,
-        target_dm: target_dm
+        target_dm: target_dm,
+        reply_to: localMsg.reply_to
       };
 
       const res = await fetch(SCRIPT_URL, {
@@ -666,18 +696,33 @@ function attachMessageClickHandlers(div, msg) {
 
     const isOwnMessage = msg.username && msg.username.toLowerCase() === username.toLowerCase();
 
-    // Show/Hide Edit button based on ownership
     if (isOwnMessage && msg.id) {
       ctxEdit.classList.remove("hidden");
     } else {
       ctxEdit.classList.add("hidden");
     }
 
-    // Position menu near cursor
     msgContextMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 180)}px`;
     msgContextMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 150)}px`;
     msgContextMenu.classList.remove("hidden");
   };
+}
+
+ctxReply.onclick = () => {
+  activeReplyTarget = activeContextMsg;
+  replyTargetName.textContent = activeReplyTarget.username;
+  replyBanner.classList.remove("hidden");
+  msgContextMenu.classList.add("hidden");
+  messageInput.focus();
+};
+
+closeReplyBanner.onclick = () => {
+  clearReplyState();
+};
+
+function clearReplyState() {
+  activeReplyTarget = null;
+  replyBanner.classList.add("hidden");
 }
 
 ctxCopy.onclick = () => {
@@ -777,17 +822,33 @@ function renderMessages() {
           const rawId = matched.id || `${matched.username}_${matched.created_at}`;
           const finalMsgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
           
-          const pendingEl = document.getElementById(local.localId);
+          const localMsgId = `msg_${local.localId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+          const pendingEl = document.getElementById(localMsgId);
+          
           if (pendingEl) {
               pendingEl.id = finalMsgId;
               renderedMessageIds.add(finalMsgId);
+              
+              const reactionsDiv = document.getElementById(`reactions_${localMsgId}`);
+              if (reactionsDiv) {
+                  reactionsDiv.id = `reactions_${finalMsgId}`;
+              }
           }
           return false;
       }
       return true;
   });
 
-  cachedMessages.forEach((msg) => {
+  let allMessages = [...cachedMessages];
+  pendingLocalMessages.forEach(pm => {
+    if (!allMessages.find(am => am.id === pm.localId)) {
+      allMessages.push({...pm, id: pm.localId});
+    }
+  });
+
+  allMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  allMessages.forEach((msg) => {
     if (!matchesContext(msg)) return;
 
     const rawId = msg.id || `${msg.username}_${msg.created_at}_${(msg.message || '').substring(0, 15)}`;
@@ -795,7 +856,6 @@ function renderMessages() {
 
     let div = document.getElementById(msgId);
     
-    // Create new message node if it doesn't exist
     if (!div) {
       div = document.createElement("div");
       div.id = msgId;
@@ -814,12 +874,24 @@ function renderMessages() {
     const initial = msg.username ? msg.username.charAt(0).toUpperCase() : "?";
     const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
     
-    // Add (edited) tag if message has been edited
     const editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
 
+    let replyHtml = "";
+    if (msg.reply_to) {
+      const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
+      if (parentMsg) {
+        replyHtml = `
+          <div class="reply-reference" onclick="document.getElementById('msg_${parentMsg.id.replace(/[^a-zA-Z0-9_-]/g, '_')}').scrollIntoView({behavior: 'smooth', block: 'center'})">
+            <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}${parentMsg.message.length > 40 ? '...' : ''}
+          </div>
+        `;
+      }
+    }
+
     div.innerHTML = `
-      <div class="avatar">${escapeHtml(initial)}</div>
+      <div class="avatar" style="${msg.reply_to ? 'top: 24px;' : ''}">${escapeHtml(initial)}</div>
       <div class="message-content">
+        ${replyHtml}
         <div class="message-header">
           <b>${escapeHtml(msg.username)}</b>
           <span class="time">${escapeHtml(time)}</span>
@@ -830,32 +902,6 @@ function renderMessages() {
     `;
 
     renderReactions(msgId);
-  });
-
-  pendingLocalMessages.forEach((msg) => {
-    if (!matchesContext(msg)) return;
-
-    if (!document.getElementById(msg.localId)) {
-      const div = document.createElement("div");
-      div.id = msg.localId;
-      div.classList.add("message", "animate-pop");
-      attachMessageClickHandlers(div, msg);
-
-      const initial = msg.username ? msg.username.charAt(0).toUpperCase() : "?";
-      const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
-
-      div.innerHTML = `
-        <div class="avatar">${escapeHtml(initial)}</div>
-        <div class="message-content">
-          <div class="message-header">
-            <b>${escapeHtml(msg.username)}</b>
-            <span class="time">${escapeHtml(time)}</span>
-          </div>
-          <span class="text">${formatMessageContent(msg.message)}</span>
-        </div>
-      `;
-      messagesEl.appendChild(div);
-    }
   });
 
   renderSidebars();
@@ -894,6 +940,8 @@ async function sendMessage() {
   }
 
   messageInput.value = "";
+  const currentReplyId = activeReplyTarget ? activeReplyTarget.id : "";
+  clearReplyState();
 
   const localId = "pending_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
 
@@ -902,6 +950,7 @@ async function sendMessage() {
     username: username,
     message: text,
     target_dm: target_dm,
+    reply_to: currentReplyId,
     created_at: new Date().toISOString()
   };
   pendingLocalMessages.push(localMsg);
@@ -913,7 +962,8 @@ async function sendMessage() {
       username: username,
       password: userPassword,
       message: text,
-      target_dm: target_dm
+      target_dm: target_dm,
+      reply_to: currentReplyId
     });
 
     fetch(`${SCRIPT_URL}?${params.toString()}`).then(async res => {
@@ -982,6 +1032,7 @@ function switchContext(type, id) {
     messageInput.placeholder = `Message @${id}`;
   }
   
+  clearReplyState();
   messagesEl.innerHTML = ""; 
   renderedMessageIds.clear(); 
   currentThreadKeys = "";
@@ -1074,4 +1125,3 @@ window.onclick = (e) => {
 </script>
 </body>
 </html>
-
