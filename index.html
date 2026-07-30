@@ -176,6 +176,7 @@
   .reactions-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
   .reaction-badge { background: #2b2d31; border: 1px solid #383a40; border-radius: 6px; padding: 2px 6px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
   .reaction-badge:hover { background: #35373c; }
+  .reaction-badge.reacted { background: #3b4252; border-color: #5865f2; }
 
   /* MEDIA & ATTACHMENT STYLES */
   .chat-image { max-width: 320px; max-height: 320px; border-radius: 8px; margin-top: 6px; cursor: pointer; object-fit: cover; }
@@ -436,6 +437,8 @@ let cachedMessages = [];
 let pendingLocalMessages = []; 
 let renderedMessageIds = new Set();
 let messageReactions = {}; 
+let userMessageReactions = {}; 
+let pollingInterval = null; 
 
 let currentThreadKeys = "";
 let currentDmKeys = "";
@@ -474,7 +477,6 @@ const closeReplyBanner = document.getElementById("closeReplyBanner");
 
 /* INITIALIZE EMOJI GRID & REACTION BAR */
 EMOJIS.forEach(emoji => {
-  // Input Emoji Picker
   const btn = document.createElement("button");
   btn.className = "emoji-item";
   btn.innerText = emoji;
@@ -485,16 +487,15 @@ EMOJIS.forEach(emoji => {
   };
   emojiGrid.appendChild(btn);
 
-  // Reaction Arsenal (Grid)
   const reactBtn = document.createElement("button");
   reactBtn.className = "emoji-item";
   reactBtn.innerText = emoji;
   reactBtn.onclick = (e) => {
     e.stopPropagation();
     if (activeContextMsg) {
-      const rawId = activeContextMsg.id || `${activeContextMsg.username}_${activeContextMsg.created_at}_${(activeContextMsg.message || '').substring(0, 15)}`;
+      const rawId = activeContextMsg.id || activeContextMsg.localId;
       const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-      addReaction(msgId, emoji);
+      toggleReaction(msgId, emoji);
     }
     msgContextMenu.classList.add("hidden");
   };
@@ -528,8 +529,8 @@ fileInput.onchange = async () => {
   const reader = new FileReader();
   reader.onload = async (e) => {
     const base64Data = e.target.result;
+    const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
     
-    const localId = "pending_file_" + Date.now();
     const localMsg = {
       localId: localId,
       username: username,
@@ -541,7 +542,7 @@ fileInput.onchange = async () => {
     pendingLocalMessages.push(localMsg);
     
     clearReplyState();
-    renderMessages();
+    renderMessages(true);
 
     try {
       const payload = {
@@ -552,7 +553,8 @@ fileInput.onchange = async () => {
         fileType: file.type,
         fileData: base64Data,
         target_dm: target_dm,
-        reply_to: localMsg.reply_to
+        reply_to: localMsg.reply_to,
+        client_id: localId
       };
 
       const res = await fetch(SCRIPT_URL, {
@@ -562,6 +564,9 @@ fileInput.onchange = async () => {
 
       const result = await res.json();
       if (result.error) alert("Upload Error: " + result.error);
+      if (result.id) {
+        localMsg.id = result.id;
+      }
       fetchMessages();
     } catch (err) {
       console.error("Upload Error:", err);
@@ -639,7 +644,9 @@ authBtn.onclick = async () => {
   appEl.classList.add("animate-pop");
 
   fetchMessages();
-  setInterval(fetchMessages, 3000);
+  if (!pollingInterval) {
+    pollingInterval = setInterval(fetchMessages, 3000);
+  }
 };
 
 /* HELPERS */
@@ -695,8 +702,9 @@ function attachMessageClickHandlers(div, msg) {
     reactEmojiBar.classList.add("hidden");
 
     const isOwnMessage = msg.username && msg.username.toLowerCase() === username.toLowerCase();
+    const hasRealId = msg.id && !msg.id.startsWith("pending_");
 
-    if (isOwnMessage && msg.id) {
+    if (isOwnMessage && hasRealId) {
       ctxEdit.classList.remove("hidden");
     } else {
       ctxEdit.classList.add("hidden");
@@ -734,22 +742,25 @@ ctxCopy.onclick = () => {
 
 ctxEdit.onclick = async () => {
   msgContextMenu.classList.add("hidden");
-  if (!activeContextMsg || !activeContextMsg.id) return;
+  if (!activeContextMsg || !activeContextMsg.id || activeContextMsg.id.startsWith("pending_")) return;
 
   const currentText = activeContextMsg.message || "";
   const newText = prompt("Edit your message:", currentText);
 
   if (newText !== null && newText.trim() !== "" && newText !== currentText) {
     try {
-      const params = new URLSearchParams({
+      const payload = {
         action: "edit",
         username: username,
         password: userPassword,
         message_id: activeContextMsg.id,
         new_message: newText.trim()
-      });
+      };
 
-      const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
       const result = await res.json();
 
       if (result.error) alert("Edit error: " + result.error);
@@ -764,10 +775,49 @@ ctxReact.onclick = () => {
   reactEmojiBar.classList.toggle("hidden");
 };
 
-function addReaction(msgId, emoji) {
+async function toggleReaction(msgId, emoji) {
+  const rawMsgId = msgId.startsWith("msg_") ? msgId.substring(4) : msgId;
+
+  // Optimistic local update for immediate snappy feedback
   if (!messageReactions[msgId]) messageReactions[msgId] = {};
-  messageReactions[msgId][emoji] = (messageReactions[msgId][emoji] || 0) + 1;
+  if (!userMessageReactions[msgId]) userMessageReactions[msgId] = {};
+
+  if (userMessageReactions[msgId][emoji]) {
+    userMessageReactions[msgId][emoji] = false;
+    messageReactions[msgId][emoji] = Math.max(0, (messageReactions[msgId][emoji] || 1) - 1);
+    if (messageReactions[msgId][emoji] === 0) {
+      delete messageReactions[msgId][emoji];
+    }
+  } else {
+    userMessageReactions[msgId][emoji] = true;
+    messageReactions[msgId][emoji] = (messageReactions[msgId][emoji] || 0) + 1;
+  }
   renderReactions(msgId);
+
+  // Send to backend if it's a real server message
+  if (!rawMsgId.startsWith("pending_")) {
+    try {
+      const payload = {
+        action: "react",
+        username: username,
+        password: userPassword,
+        message_id: rawMsgId,
+        emoji: emoji
+      };
+
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (result.error) {
+        console.error("Reaction sync error:", result.error);
+        fetchMessages();
+      }
+    } catch (err) {
+      console.error("Network error toggling reaction:", err);
+    }
+  }
 }
 
 function renderReactions(msgId) {
@@ -777,19 +827,20 @@ function renderReactions(msgId) {
   reactionsDiv.innerHTML = "";
   Object.entries(messageReactions[msgId]).forEach(([emoji, count]) => {
     const badge = document.createElement("span");
-    badge.className = "reaction-badge";
+    const isReactedByMe = userMessageReactions[msgId] && userMessageReactions[msgId][emoji];
+    badge.className = `reaction-badge ${isReactedByMe ? 'reacted' : ''}`;
     badge.innerHTML = `${emoji} <span>${count}</span>`;
     badge.onclick = (e) => {
       e.stopPropagation();
-      addReaction(msgId, emoji);
+      toggleReaction(msgId, emoji);
     };
     reactionsDiv.appendChild(badge);
   });
 }
 
 /* RENDER MESSAGES & SIDEBAR */
-function renderMessages() {
-  let wasAtBottom = (messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 50;
+function renderMessages(forceScroll = false) {
+  let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 50);
 
   cachedMessages.forEach((msg) => {
     const target = msg.target_dm || "";
@@ -801,10 +852,29 @@ function renderMessages() {
       if (parts[0] && parts[0].toLowerCase() === myLower) activeDms.add(parts[1]);
       if (parts[1] && parts[1].toLowerCase() === myLower) activeDms.add(parts[0]);
     }
+
+    // Populate reactions from server state for real messages
+    if (msg.id && !msg.id.startsWith("pending_")) {
+      const rawId = msg.id;
+      const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      
+      messageReactions[msgId] = {};
+      userMessageReactions[msgId] = {};
+      if (msg.reactions) {
+        Object.entries(msg.reactions).forEach(([emoji, users]) => {
+          messageReactions[msgId][emoji] = users.length;
+          if (Array.isArray(users) && users.includes(username)) {
+            userMessageReactions[msgId][emoji] = true;
+          }
+        });
+      }
+    }
   });
 
+  // Reconcile pending local messages & migrate reaction state to server message IDs
   pendingLocalMessages = pendingLocalMessages.filter(local => {
       const matchIndex = cachedMessages.findIndex(server => {
+          if (local.id && server.id === local.id) return true;
           const sameUser = server.username.toLowerCase() === local.username.toLowerCase();
           const sameMsg = server.message === local.message;
           const sameTarget = (server.target_dm || "") === (local.target_dm || "");
@@ -819,12 +889,20 @@ function renderMessages() {
       
       if (matchIndex !== -1) {
           const matched = cachedMessages[matchIndex];
-          const rawId = matched.id || `${matched.username}_${matched.created_at}`;
+          const rawId = matched.id;
           const finalMsgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-          
           const localMsgId = `msg_${local.localId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-          const pendingEl = document.getElementById(localMsgId);
           
+          if (messageReactions[localMsgId]) {
+              messageReactions[finalMsgId] = messageReactions[localMsgId];
+              delete messageReactions[localMsgId];
+          }
+          if (userMessageReactions[localMsgId]) {
+              userMessageReactions[finalMsgId] = userMessageReactions[localMsgId];
+              delete userMessageReactions[localMsgId];
+          }
+
+          const pendingEl = document.getElementById(localMsgId);
           if (pendingEl) {
               pendingEl.id = finalMsgId;
               renderedMessageIds.add(finalMsgId);
@@ -841,7 +919,7 @@ function renderMessages() {
 
   let allMessages = [...cachedMessages];
   pendingLocalMessages.forEach(pm => {
-    if (!allMessages.find(am => am.id === pm.localId)) {
+    if (!allMessages.find(am => am.id === pm.localId || am.id === pm.id)) {
       allMessages.push({...pm, id: pm.localId});
     }
   });
@@ -851,7 +929,7 @@ function renderMessages() {
   allMessages.forEach((msg) => {
     if (!matchesContext(msg)) return;
 
-    const rawId = msg.id || `${msg.username}_${msg.created_at}_${(msg.message || '').substring(0, 15)}`;
+    const rawId = msg.id || msg.localId || `${msg.username}_${msg.created_at}`;
     const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
     let div = document.getElementById(msgId);
@@ -880,9 +958,17 @@ function renderMessages() {
     if (msg.reply_to) {
       const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
       if (parentMsg) {
+        const parentRawId = parentMsg.id;
+        const parentMsgId = `msg_${parentRawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
         replyHtml = `
-          <div class="reply-reference" onclick="document.getElementById('msg_${parentMsg.id.replace(/[^a-zA-Z0-9_-]/g, '_')}').scrollIntoView({behavior: 'smooth', block: 'center'})">
+          <div class="reply-reference" onclick="const pEl = document.getElementById('${parentMsgId}'); if(pEl) pEl.scrollIntoView({behavior: 'smooth', block: 'center'});">
             <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}${parentMsg.message.length > 40 ? '...' : ''}
+          </div>
+        `;
+      } else {
+        replyHtml = `
+          <div class="reply-reference" style="color: #80848e; cursor: default;">
+            <i>Original message deleted</i>
           </div>
         `;
       }
@@ -943,7 +1029,7 @@ async function sendMessage() {
   const currentReplyId = activeReplyTarget ? activeReplyTarget.id : "";
   clearReplyState();
 
-  const localId = "pending_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+  const localId = "pending_" + (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + "_" + Math.random().toString(36).substr(2, 5)));
 
   const localMsg = {
     localId: localId,
@@ -954,7 +1040,7 @@ async function sendMessage() {
     created_at: new Date().toISOString()
   };
   pendingLocalMessages.push(localMsg);
-  renderMessages();
+  renderMessages(true);
 
   try {
     const params = new URLSearchParams({
@@ -963,12 +1049,16 @@ async function sendMessage() {
       password: userPassword,
       message: text,
       target_dm: target_dm,
-      reply_to: currentReplyId
+      reply_to: currentReplyId,
+      client_id: localId
     });
 
     fetch(`${SCRIPT_URL}?${params.toString()}`).then(async res => {
       const result = await res.json();
       if (result.error) alert("Failed to send: " + result.error);
+      if (result.id) {
+        localMsg.id = result.id;
+      }
       fetchMessages();
     });
   } catch (err) {
@@ -1037,7 +1127,7 @@ function switchContext(type, id) {
   renderedMessageIds.clear(); 
   currentThreadKeys = "";
   currentDmKeys = "";
-  renderMessages();
+  renderMessages(true);
 }
 
 /* DYNAMIC USER LIST FOR DIRECT MESSAGES */
@@ -1125,3 +1215,4 @@ window.onclick = (e) => {
 </script>
 </body>
 </html>
+
