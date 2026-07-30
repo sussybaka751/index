@@ -273,6 +273,7 @@
   .profile-body { padding: 44px 16px 16px 16px; background: #111214; margin: 8px; border-radius: 8px; }
   .profile-username-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
   .profile-username-text { font-size: 18px; font-weight: 700; color: #f2f3f5; }
+  .profile-created-date { font-size: 12px; color: #949ba4; margin-bottom: 8px; }
   .profile-pronouns-input {
     background: transparent; border: 1px solid transparent; color: #b5bac1; font-size: 13px;
     width: 100px; text-align: right; border-radius: 4px; padding: 2px 4px; outline: none;
@@ -447,6 +448,7 @@
       <div class="profile-username-text" id="popoverUsername">User</div>
       <input type="text" id="popoverPronounsInput" class="profile-pronouns-input" placeholder="+ Pronouns" maxlength="15">
     </div>
+    <div class="profile-created-date" id="popoverCreatedDate">Member Since: --</div>
     
     <div class="profile-divider"></div>
     <div class="profile-section-title">About Me</div>
@@ -455,7 +457,7 @@
   </div>
 </div>
 
-<!-- CONTEXT MENU -->
+<!-- CONTEXT MENU (POPS UP ABOVE CLICKED MESSAGE) -->
 <div id="msgContextMenu" class="msg-context-menu hidden">
   <button id="ctxReply" class="menu-option"><span>↩️</span> Reply</button>
   <button id="ctxEdit" class="menu-option"><span>✏️</span> Edit Message</button>
@@ -556,6 +558,7 @@ const popoverAvatar = document.getElementById("popoverAvatar");
 const popoverAvatarInitial = document.getElementById("popoverAvatarInitial");
 const popoverAvatarOverlay = document.getElementById("popoverAvatarOverlay");
 const popoverUsername = document.getElementById("popoverUsername");
+const popoverCreatedDate = document.getElementById("popoverCreatedDate");
 const popoverPronounsInput = document.getElementById("popoverPronounsInput");
 const popoverBioInput = document.getElementById("popoverBioInput");
 const popoverBioReadonly = document.getElementById("popoverBioReadonly");
@@ -612,6 +615,7 @@ fileInput.onchange = async () => {
     
     const localMsg = {
       localId: localId,
+      client_id: localId,
       username: username,
       message: `Uploading ${file.name}...`,
       target_dm: target_dm,
@@ -631,7 +635,9 @@ fileInput.onchange = async () => {
       };
       const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
       const result = await res.json();
-      if (result.id) localMsg.id = result.id;
+      if (result.id) {
+        localMsg.id = result.id;
+      }
       fetchMessages();
     } catch (err) {
       alert("Failed to upload file.");
@@ -703,11 +709,11 @@ authBtn.onclick = async () => {
 
   fetchMessages();
   if (!pollingInterval) {
-    pollingInterval = setInterval(fetchMessages, 2000);
+    pollingInterval = setInterval(fetchMessages, 1200);
   }
 };
 
-/* PROFILE POPOVER LOGIC */
+/* PROFILE POPOVER LOGIC WITH CREATED DATE */
 document.getElementById("myProfilePanel").onclick = (e) => {
   e.stopPropagation();
   openProfileCard(username);
@@ -716,9 +722,25 @@ document.getElementById("myProfilePanel").onclick = (e) => {
 function openProfileCard(targetUser) {
   activeProfileUser = targetUser;
   const isMe = targetUser.toLowerCase() === username.toLowerCase();
-  const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser, pronouns: "", bio: "", avatar_url: "" };
+  const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser, pronouns: "", bio: "", avatar_url: "", created_at: "" };
 
   popoverUsername.textContent = profile.username || targetUser;
+
+  if (profile.created_at) {
+    const dateObj = new Date(profile.created_at);
+    if (!isNaN(dateObj)) {
+      const formattedDate = dateObj.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+      popoverCreatedDate.textContent = `Member Since: ${formattedDate}`;
+    } else {
+      popoverCreatedDate.textContent = "Member Since: --";
+    }
+  } else {
+    popoverCreatedDate.textContent = "Member Since: --";
+  }
 
   if (profile.avatar_url) {
     popoverAvatar.style.backgroundImage = `url("${profile.avatar_url}")`;
@@ -859,7 +881,7 @@ function formatMessageContent(msgText) {
   return escapeHtml(msgText);
 }
 
-/* CLICK & REACTION DISPATCHERS */
+/* CLICK & REACTION DISPATCHERS WITH OVERHEAD CONTEXT MENU */
 function attachMessageClickHandlers(div, msg) {
   div.onclick = (e) => {
     e.stopPropagation();
@@ -872,9 +894,19 @@ function attachMessageClickHandlers(div, msg) {
     if (isOwnMessage && hasRealId) ctxEdit.classList.remove("hidden");
     else ctxEdit.classList.add("hidden");
 
-    msgContextMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 180)}px`;
-    msgContextMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 150)}px`;
     msgContextMenu.classList.remove("hidden");
+    const rect = div.getBoundingClientRect();
+    const menuHeight = msgContextMenu.offsetHeight || 160;
+
+    let posX = Math.min(e.clientX, window.innerWidth - 180);
+    let posY = rect.top - menuHeight - 6;
+
+    if (posY < 10) {
+      posY = rect.bottom + 6;
+    }
+
+    msgContextMenu.style.left = `${posX}px`;
+    msgContextMenu.style.top = `${posY}px`;
   };
 }
 
@@ -989,11 +1021,17 @@ function sendTypingSignal(isTyping) {
   }).catch(() => {});
 }
 
-/* RENDER MESSAGES & MERGE REACTION STATES PREVENTING FLICKER */
+/* RENDER MESSAGES & MERGE REACTION STATES PREVENTING FLICKER & DUPLICATES */
 function renderMessages(forceScroll = false) {
   let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 50);
 
+  const serverClientIds = new Set();
+  const serverMsgIds = new Set();
+
   cachedMessages.forEach((msg) => {
+    if (msg.client_id) serverClientIds.add(msg.client_id);
+    if (msg.id) serverMsgIds.add(msg.id);
+
     const target = msg.target_dm || "";
     if (target.startsWith("channel:") && target !== "channel:general-chat") {
       activeThreads.add(target.replace("channel:", ""));
@@ -1025,9 +1063,21 @@ function renderMessages(forceScroll = false) {
     }
   });
 
+  // Reconcile and clear local pending messages once confirmed on server
+  pendingLocalMessages = pendingLocalMessages.filter(pm => {
+    const isConfirmed = serverClientIds.has(pm.client_id || pm.localId) || serverMsgIds.has(pm.id);
+    if (isConfirmed) {
+      const pendingElementId = `msg_${(pm.localId || pm.client_id).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      const el = document.getElementById(pendingElementId);
+      if (el) el.remove();
+      return false;
+    }
+    return true;
+  });
+
   let allMessages = [...cachedMessages];
   pendingLocalMessages.forEach(pm => {
-    if (!allMessages.find(am => am.id === pm.localId || am.id === pm.id)) {
+    if (!allMessages.find(am => am.id === pm.localId || am.id === pm.id || am.client_id === pm.client_id)) {
       allMessages.push({...pm, id: pm.localId});
     }
   });
@@ -1135,7 +1185,7 @@ async function sendMessage() {
   const localId = "pending_" + (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + "_" + Math.random().toString(36).substr(2, 5)));
 
   const localMsg = {
-    localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
+    localId, client_id: localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
   };
   pendingLocalMessages.push(localMsg);
   renderMessages(true);
@@ -1299,4 +1349,3 @@ window.onclick = (e) => {
 </script>
 </body>
 </html>
-
