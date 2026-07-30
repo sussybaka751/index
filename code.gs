@@ -64,7 +64,7 @@ function handleRequest(e, method) {
       response = {
         messages: fetchMessages(messagesSheet),
         users: fetchUsers(usersSheet),
-        profiles: fetchProfiles(profilesSheet),
+        profiles: fetchProfiles(profilesSheet, usersSheet),
         typing_users: getActiveTypingUsers()
       };
     }
@@ -109,22 +109,39 @@ function handleUpdateProfile(usersSheet, profilesSheet, params) {
   return { success: true };
 }
 
-function fetchProfiles(profilesSheet) {
+function fetchProfiles(profilesSheet, usersSheet) {
   const data = profilesSheet.getDataRange().getValues();
-  if (data.length <= 1) return {};
-
   const profiles = {};
-  for (let i = 1; i < data.length; i++) {
-    const user = data[i][0] ? data[i][0].toString() : "";
-    if (user) {
-      profiles[user.toLowerCase()] = {
-        username: user,
-        pronouns: data[i][1] || "",
-        bio: data[i][2] || "",
-        avatar_url: data[i][3] || ""
-      };
+
+  if (data.length > 1) {
+    for (let i = 1; i < data.length; i++) {
+      const user = data[i][0] ? data[i][0].toString() : "";
+      if (user) {
+        profiles[user.toLowerCase()] = {
+          username: user,
+          pronouns: data[i][1] || "",
+          bio: data[i][2] || "",
+          avatar_url: data[i][3] || ""
+        };
+      }
     }
   }
+
+  if (usersSheet) {
+    const userData = usersSheet.getDataRange().getValues();
+    for (let j = 1; j < userData.length; j++) {
+      const uName = userData[j][0] ? userData[j][0].toString() : "";
+      const createdAt = userData[j][2] || "";
+      if (uName) {
+        const key = uName.toLowerCase();
+        if (!profiles[key]) {
+          profiles[key] = { username: uName, pronouns: "", bio: "", avatar_url: "" };
+        }
+        profiles[key].created_at = createdAt;
+      }
+    }
+  }
+
   return profiles;
 }
 
@@ -235,7 +252,8 @@ function handleRegister(usersSheet, profilesSheet, username, password) {
     }
   }
 
-  usersSheet.appendRow([username, password, new Date().toISOString()]);
+  const now = new Date().toISOString();
+  usersSheet.appendRow([username, password, now]);
   profilesSheet.appendRow([username, "", "", ""]);
   return { success: true, message: "Registered successfully!" };
 }
@@ -278,7 +296,7 @@ function handleSendMessage(messagesSheet, usersSheet, params) {
     "{}" 
   ]);
 
-  return { success: true, id: msgId };
+  return { success: true, id: msgId, client_id: client_id || "" };
 }
 
 function handleEditMessage(messagesSheet, usersSheet, params) {
@@ -339,7 +357,7 @@ function handleFileUpload(messagesSheet, usersSheet, params) {
     "{}"
   ]);
 
-  return { success: true, id: msgId };
+  return { success: true, id: msgId, client_id: client_id || "" };
 }
 
 function handleReact(messagesSheet, usersSheet, params) {
