@@ -21,6 +21,23 @@
     user-select: none;
   }
 
+  /* Custom Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #2b2d31;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1a1b1e;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #111214;
+  }
+
   /* Animations */
   @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.98); }
@@ -1078,7 +1095,11 @@
   function renderTypingIndicator() {
     const roomKey = getCurrentTargetDm().replace(/[.#$/\[\]]/g, "_");
     const typingUsersInRoom = serverTypingMap[roomKey] || {};
-    const otherTypingUsers = Object.keys(typingUsersInRoom).filter(u => u.toLowerCase() !== username.toLowerCase() && typingUsersInRoom[u]);
+    
+    // Fixed: properly sanitize the local username to match the Firebase key format[cite: 6]
+    const mySanitizedKey = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    
+    const otherTypingUsers = Object.keys(typingUsersInRoom).filter(u => u !== mySanitizedKey && typingUsersInRoom[u]);
 
     if (otherTypingUsers.length === 0) {
       typingIndicator.classList.add("hidden");
@@ -1223,7 +1244,7 @@
 
   window.openProfileCard = openProfileCard;
 
-  /* SEND MESSAGE */
+  /* SEND MESSAGE - 0ms instant front-end update */
   async function sendMessage() {
     const text = messageInput.value.trim();
     if (!text) return;
@@ -1242,8 +1263,11 @@
     const localMsg = {
       localId, client_id: localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
     };
+    
+    // Pushes local message and immediately forces a render and scroll for 0ms lag[cite: 6]
     pendingLocalMessages.push(localMsg);
     renderMessages(true);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
 
     try {
       const msgRef = push(ref(db, 'messages'));
