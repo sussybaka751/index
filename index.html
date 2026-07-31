@@ -530,9 +530,8 @@
 </div>
 
 <script type="module">
-  // Added onDisconnect to monitor live connections
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, set, get, child, push, update, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, set, get, child, push, update, onValue, onDisconnect, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
   const firebaseConfig = {
@@ -565,7 +564,7 @@
   let messageReactions = {}; 
   let userMessageReactions = {}; 
   let userProfiles = {}; 
-  let userStatuses = {}; // Real-time presence storage
+  let userStatuses = {}; 
 
   let currentThreadKeys = "";
   let currentDmKeys = "";
@@ -727,7 +726,7 @@
   msgContextMenu.onclick = (e) => e.stopPropagation();
   profilePopover.onclick = (e) => e.stopPropagation();
 
-  /* AUTHENTICATION SETUP (FIREBASE REALTIME DB) */
+  /* AUTHENTICATION SETUP */
   authToggleBtn.onclick = () => {
     isRegisterMode = !isRegisterMode;
     authTitle.textContent = isRegisterMode ? "Create an account" : "Welcome back!";
@@ -786,7 +785,6 @@
       return;
     }
 
-    // Set online presence immediately upon login
     const myStatusRef = ref(db, `status/${sanitizeUsername}`);
     set(myStatusRef, "online");
 
@@ -807,45 +805,62 @@
   }
 
   function updateAllPresences() {
-    // 1. My Profile Panel
     const myStatus = getUserStatus(username);
     const myDot = document.getElementById("myStatusDot");
     if (myDot) myDot.className = `status-dot ${myStatus}`;
 
-    // 2. Profile Popover
     if (activeProfileUser) {
       const popDot = document.getElementById("popoverStatusDot");
       if (popDot) popDot.className = `status-dot-large ${getUserStatus(activeProfileUser)}`;
     }
 
-    // 3. Re-render Sidebar DMs to apply status icons
-    renderSidebars(true);
+    updateDmStatusDots();
+    updateHeaderAvatarStatus();
+  }
 
-    // 4. Header Avatar Status
-    updateHeaderAvatar();
+  function updateDmStatusDots() {
+    const dmListEl = document.getElementById("dmList");
+    if (!dmListEl) return;
+    const items = dmListEl.getElementsByClassName("channel-item");
+    for (let item of items) {
+      const span = item.querySelector("span:not(.prefix)");
+      if (span) {
+        const uName = span.textContent.trim();
+        const dot = item.querySelector(".status-dot");
+        if (dot) {
+          dot.className = `status-dot ${getUserStatus(uName)}`;
+        }
+      }
+    }
+  }
+
+  function updateHeaderAvatarStatus() {
+    if (currentContext.type !== 'dm') return;
+    const headerAvatar = document.getElementById("headerAvatar");
+    const dot = headerAvatar.querySelector(".status-dot");
+    if (dot) {
+      dot.className = `status-dot ${getUserStatus(currentContext.id)}`;
+    }
   }
 
   function initFirebaseListeners() {
-    // Listen for connection drops to handle HTML compile exits and refreshes
     const connectedRef = ref(db, '.info/connected');
     onValue(connectedRef, (snap) => {
       if (snap.val() === true && username) {
         const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
         const myStatusRef = ref(db, `status/${mySanitized}`);
-        // Tells Firebase: when my connection dies, instantly set this node to offline
         onDisconnect(myStatusRef).set("offline").then(() => {
           set(myStatusRef, "online");
         });
       }
     });
 
-    // Global listener for everyone's status
     onValue(ref(db, 'status'), (snap) => {
       userStatuses = snap.val() || {};
       updateAllPresences();
     });
 
-    onValue(ref(db, 'messages'), (snapshot) => {
+    onValue(query(ref(db, 'messages'), limitToLast(50)), (snapshot) => {
       const data = snapshot.val();
       const loadedMessages = [];
       if (data) {
@@ -877,7 +892,6 @@
     });
   }
 
-  /* PROFILE POPOVER LOGIC WITH CREATED DATE */
   document.getElementById("myProfilePanel").onclick = (e) => {
     e.stopPropagation();
     openProfileCard(username);
@@ -942,7 +956,6 @@
     profilePopover.classList.remove("hidden");
   }
 
-  /* AVATAR UPLOAD HANDLER */
   pfpFileInput.onchange = async () => {
     const file = pfpFileInput.files[0];
     if (!file) return;
@@ -1006,7 +1019,6 @@
     document.getElementById("myDisplayPronouns").textContent = myProfile.pronouns || "Online";
   }
 
-  /* HELPERS */
   function getDmRoomId(userA, userB) {
     return [userA.trim().toLowerCase(), userB.trim().toLowerCase()].sort().join(":");
   }
@@ -1051,7 +1063,6 @@
     return `msg_${String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
   }
 
-  /* CLICK & REACTION DISPATCHERS WITH OVERHEAD CONTEXT MENU */
   function attachMessageClickHandlers(div, msg) {
     div.onclick = (e) => {
       e.stopPropagation();
@@ -1193,7 +1204,6 @@
     set(ref(db, `typing/${roomKey}/${userKey}`), isTyping).catch(() => {});
   }
 
-  /* RENDER MESSAGES & MERGE REACTION STATES PREVENTING FLICKER & DUPLICATES */
   function renderMessages(forceScroll = false) {
     let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 50);
 
@@ -1262,44 +1272,53 @@
           div.classList.add("animate-pop");
           renderedMessageIds.add(msgId);
         }
-        messagesEl.appendChild(div);
-      }
+        
+        const msgUser = msg.username || "?";
+        const profile = userProfiles[msgUser.toLowerCase()] || {};
+        const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+        const initial = msgUser.charAt(0).toUpperCase();
 
-      attachMessageClickHandlers(div, msg);
+        const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
+        const editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
 
-      const msgUser = msg.username || "?";
-      const profile = userProfiles[msgUser.toLowerCase()] || {};
-      const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
-      const initial = msgUser.charAt(0).toUpperCase();
+        let replyHtml = "";
+        if (msg.reply_to) {
+          const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
+          if (parentMsg) {
+            const parentMsgId = getMsgDomId(parentMsg);
+            replyHtml = `
+              <div class="reply-reference" onclick="const pEl = document.getElementById('${parentMsgId}'); if(pEl) pEl.scrollIntoView({behavior: 'smooth', block: 'center'});">
+                <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}
+              </div>
+            `;
+          }
+        }
 
-      const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
-      const editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
-
-      let replyHtml = "";
-      if (msg.reply_to) {
-        const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
-        if (parentMsg) {
-          const parentMsgId = getMsgDomId(parentMsg);
-          replyHtml = `
-            <div class="reply-reference" onclick="const pEl = document.getElementById('${parentMsgId}'); if(pEl) pEl.scrollIntoView({behavior: 'smooth', block: 'center'});">
-              <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}
+        div.innerHTML = `
+          <div class="avatar" style="${avatarStyle} ${msg.reply_to ? 'top: 24px;' : ''}" onclick="event.stopPropagation(); window.openProfileCard('${escapeHtml(msgUser)}');">${profile.avatar_url ? '' : escapeHtml(initial)}</div>
+          <div class="message-content">
+            ${replyHtml}
+            <div class="message-header">
+              <b onclick="event.stopPropagation(); window.openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)}</b>
+              <span class="time">${escapeHtml(time)}</span>
             </div>
-          `;
+            <span class="text" id="text_${msgId}">${formatMessageContent(msg.message)}</span><span id="edited_${msgId}">${editedLabel}</span>
+            <div id="reactions_${msgId}" class="reactions-container"></div>
+          </div>
+        `;
+
+        attachMessageClickHandlers(div, msg);
+        messagesEl.appendChild(div);
+      } else {
+        const textEl = document.getElementById(`text_${msgId}`);
+        if (textEl && textEl.innerHTML !== formatMessageContent(msg.message)) {
+          textEl.innerHTML = formatMessageContent(msg.message);
+        }
+        const editedEl = document.getElementById(`edited_${msgId}`);
+        if (editedEl) {
+          editedEl.innerHTML = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
         }
       }
-
-      div.innerHTML = `
-        <div class="avatar" style="${avatarStyle} ${msg.reply_to ? 'top: 24px;' : ''}" onclick="event.stopPropagation(); window.openProfileCard('${escapeHtml(msgUser)}');">${profile.avatar_url ? '' : escapeHtml(initial)}</div>
-        <div class="message-content">
-          ${replyHtml}
-          <div class="message-header">
-            <b onclick="event.stopPropagation(); window.openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)}</b>
-            <span class="time">${escapeHtml(time)}</span>
-          </div>
-          <span class="text">${formatMessageContent(msg.message)}${editedLabel}</span>
-          <div id="reactions_${msgId}" class="reactions-container"></div>
-        </div>
-      `;
 
       renderReactions(msgId, msg);
     });
@@ -1312,7 +1331,6 @@
 
   window.openProfileCard = openProfileCard;
 
-  /* SEND MESSAGE */
   async function sendMessage() {
     const text = messageInput.value.trim();
     if (!text) return;
@@ -1350,7 +1368,6 @@
     } catch (err) {}
   }
 
-  /* INPUT TYPING EVENTS */
   messageInput.addEventListener("input", () => {
     const now = Date.now();
     if (now - lastTypingSentTime > 2500) {
@@ -1383,12 +1400,11 @@
     headerAvatar.onclick = () => openProfileCard(targetUser);
   }
 
-  /* SIDEBAR RENDERER */
-  function renderSidebars(force = false) {
+  function renderSidebars() {
     const newThreadKeys = Array.from(activeThreads).join(",") + ":" + (currentContext.type === 'channel' ? currentContext.id : '');
     const newDmKeys = Array.from(activeDms).join(",") + ":" + (currentContext.type === 'dm' ? currentContext.id : '');
 
-    if (newThreadKeys !== currentThreadKeys || force) {
+    if (newThreadKeys !== currentThreadKeys) {
       currentThreadKeys = newThreadKeys;
       const threadListEl = document.getElementById("threadList");
       threadListEl.innerHTML = "";
@@ -1402,7 +1418,7 @@
       });
     }
 
-    if (newDmKeys !== currentDmKeys || force) {
+    if (newDmKeys !== currentDmKeys) {
       currentDmKeys = newDmKeys;
       const dmListEl = document.getElementById("dmList");
       dmListEl.innerHTML = "";
@@ -1533,3 +1549,4 @@
 </script>
 </body>
 </html>
+
