@@ -581,9 +581,7 @@ EMOJIS.forEach(emoji => {
   reactBtn.onclick = (e) => {
     e.stopPropagation();
     if (activeContextMsg) {
-      const rawId = activeContextMsg.id || activeContextMsg.localId;
-      const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-      toggleReaction(msgId, emoji);
+      toggleReaction(activeContextMsg, emoji);
     }
     msgContextMenu.classList.add("hidden");
   };
@@ -881,6 +879,22 @@ function formatMessageContent(msgText) {
   return escapeHtml(msgText);
 }
 
+/*
+ * STABLE DOM ID FOR A MESSAGE.
+ * The key fix for the send-flicker: every message sent by any client carries a client_id
+ * generated locally before the server round-trip. We key the DOM element off that client_id
+ * (when present) instead of the server-assigned id. That means the *same* DOM element used
+ * for the optimistic "pending" message is reused once the server confirms it — its id, text,
+ * and reaction data get updated in place instead of the pending element being torn down and
+ * a brand-new element (with a new id) being created and re-animated in its place.
+ */
+function getMsgDomId(msg) {
+  const rawId = msg.client_id
+    ? `client_${msg.client_id}`
+    : (msg.id || msg.localId || `${msg.username}_${msg.created_at}`);
+  return `msg_${String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+}
+
 /* CLICK & REACTION DISPATCHERS WITH OVERHEAD CONTEXT MENU */
 function attachMessageClickHandlers(div, msg) {
   div.onclick = (e) => {
@@ -947,33 +961,40 @@ ctxEdit.onclick = async () => {
 
 ctxReact.onclick = () => reactEmojiBar.classList.toggle("hidden");
 
-async function toggleReaction(msgId, emoji) {
-  const rawMsgId = msgId.startsWith("msg_") ? msgId.substring(4) : msgId;
+/*
+ * toggleReaction now takes the full message object rather than a pre-built DOM id string.
+ * - The DOM/local bookkeeping key is the stable client_id-based id (getMsgDomId).
+ * - The id sent to the backend is always the real server message id (msg.id), so reactions
+ *   on freshly-sent messages still work correctly even though the DOM key differs.
+ */
+async function toggleReaction(msg, emoji) {
+  const domId = getMsgDomId(msg);
+  const realId = msg.id;
 
-  if (!messageReactions[msgId]) messageReactions[msgId] = {};
-  if (!userMessageReactions[msgId]) userMessageReactions[msgId] = {};
+  if (!messageReactions[domId]) messageReactions[domId] = {};
+  if (!userMessageReactions[domId]) userMessageReactions[domId] = {};
 
-  if (userMessageReactions[msgId][emoji]) {
-    userMessageReactions[msgId][emoji] = false;
-    messageReactions[msgId][emoji] = Math.max(0, (messageReactions[msgId][emoji] || 1) - 1);
-    if (messageReactions[msgId][emoji] === 0) delete messageReactions[msgId][emoji];
+  if (userMessageReactions[domId][emoji]) {
+    userMessageReactions[domId][emoji] = false;
+    messageReactions[domId][emoji] = Math.max(0, (messageReactions[domId][emoji] || 1) - 1);
+    if (messageReactions[domId][emoji] === 0) delete messageReactions[domId][emoji];
   } else {
-    userMessageReactions[msgId][emoji] = true;
-    messageReactions[msgId][emoji] = (messageReactions[msgId][emoji] || 0) + 1;
+    userMessageReactions[domId][emoji] = true;
+    messageReactions[domId][emoji] = (messageReactions[domId][emoji] || 0) + 1;
   }
-  
-  renderReactions(msgId);
 
-  if (!rawMsgId.startsWith("pending_")) {
+  renderReactions(domId, msg);
+
+  if (realId && !realId.startsWith("pending_")) {
     try {
-      const payload = { action: "react", username, password: userPassword, message_id: rawMsgId, emoji };
+      const payload = { action: "react", username, password: userPassword, message_id: realId, emoji };
       await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
       fetchMessages();
     } catch (err) {}
   }
 }
 
-function renderReactions(msgId) {
+function renderReactions(msgId, msg) {
   const reactionsDiv = document.getElementById(`reactions_${msgId}`);
   if (!reactionsDiv) return;
 
@@ -988,7 +1009,7 @@ function renderReactions(msgId) {
     badge.innerHTML = `${emoji} <span>${count}</span>`;
     badge.onclick = (e) => {
       e.stopPropagation();
-      toggleReaction(msgId, emoji);
+      toggleReaction(msg, emoji);
     };
     reactionsDiv.appendChild(badge);
   });
@@ -1043,9 +1064,8 @@ function renderMessages(forceScroll = false) {
     }
 
     if (msg.id && !msg.id.startsWith("pending_")) {
-      const rawId = msg.id;
-      const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-      
+      const msgId = getMsgDomId(msg);
+
       const serverReactions = {};
       const serverUserReactions = {};
 
@@ -1063,16 +1083,13 @@ function renderMessages(forceScroll = false) {
     }
   });
 
-  // Reconcile and clear local pending messages once confirmed on server
+  // Once the server confirms a locally-sent message (matched by client_id or id), drop it
+  // from the pending list. We deliberately do NOT touch the DOM here — the confirmed message
+  // reuses the exact same element (same client_id-based id) in the render loop below, so there
+  // is nothing to remove/recreate and therefore nothing to flicker or re-animate.
   pendingLocalMessages = pendingLocalMessages.filter(pm => {
     const isConfirmed = serverClientIds.has(pm.client_id || pm.localId) || serverMsgIds.has(pm.id);
-    if (isConfirmed) {
-      const pendingElementId = `msg_${(pm.localId || pm.client_id).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-      const el = document.getElementById(pendingElementId);
-      if (el) el.remove();
-      return false;
-    }
-    return true;
+    return !isConfirmed;
   });
 
   let allMessages = [...cachedMessages];
@@ -1087,8 +1104,7 @@ function renderMessages(forceScroll = false) {
   allMessages.forEach((msg) => {
     if (!matchesContext(msg)) return;
 
-    const rawId = msg.id || msg.localId || `${msg.username}_${msg.created_at}`;
-    const msgId = `msg_${rawId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+    const msgId = getMsgDomId(msg);
 
     let div = document.getElementById(msgId);
     
@@ -1118,7 +1134,7 @@ function renderMessages(forceScroll = false) {
     if (msg.reply_to) {
       const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
       if (parentMsg) {
-        const parentMsgId = `msg_${parentMsg.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+        const parentMsgId = getMsgDomId(parentMsg);
         replyHtml = `
           <div class="reply-reference" onclick="const pEl = document.getElementById('${parentMsgId}'); if(pEl) pEl.scrollIntoView({behavior: 'smooth', block: 'center'});">
             <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}
@@ -1140,7 +1156,7 @@ function renderMessages(forceScroll = false) {
       </div>
     `;
 
-    renderReactions(msgId);
+    renderReactions(msgId, msg);
   });
 
   renderSidebars();
@@ -1349,3 +1365,4 @@ window.onclick = (e) => {
 </script>
 </body>
 </html>
+
