@@ -490,879 +490,909 @@
   </div>
 </div>
 
-<script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZLKF6PQ9vY6TuyLTr_McZkWnP3MRYhFiKSW9lnOm5StCVTDjBHA7ZKJPdD8UWMA/exec";
-const EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","😉","😍","😘","😜","🤔","😎","😭","😡","👍","👎","🔥","💀"];
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, set, get, child, push, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-let username = "";
-let userPassword = "";
-let isRegisterMode = false;
-
-let currentContext = { type: 'channel', id: 'general-chat' }; 
-let activeDms = new Set();
-let activeThreads = new Set(["general-chat"]); 
-let cachedMessages = [];
-let pendingLocalMessages = []; 
-let renderedMessageIds = new Set();
-let messageReactions = {}; 
-let userMessageReactions = {}; 
-let userProfiles = {}; 
-let pollingInterval = null;
-
-let currentThreadKeys = "";
-let currentDmKeys = "";
-let activeContextMsg = null; 
-let activeReplyTarget = null;
-let activeProfileUser = null;
-
-let typingTimeout = null;
-let lastTypingSentTime = 0;
-let serverTypingMap = {};
-
-const loginContainerEl = document.getElementById("login-container");
-const appEl = document.getElementById("app");
-const messagesEl = document.getElementById("messages");
-const messageInput = document.getElementById("message");
-
-const typingIndicator = document.getElementById("typingIndicator");
-const typingText = document.getElementById("typingText");
-
-const authBtn = document.getElementById("authBtn");
-const authBtnText = document.getElementById("authBtnText");
-const authToggleBtn = document.getElementById("authToggleBtn");
-const authToggleLabel = document.getElementById("authToggleLabel");
-const authTitle = document.getElementById("authTitle");
-
-const plusBtn = document.getElementById("plusBtn");
-const plusMenu = document.getElementById("plusMenu");
-const uploadOption = document.getElementById("uploadOption");
-const fileInput = document.getElementById("fileInput");
-const pfpFileInput = document.getElementById("pfpFileInput");
-const emojisOption = document.getElementById("emojisOption");
-const emojiPicker = document.getElementById("emojiPicker");
-const emojiGrid = document.getElementById("emojiGrid");
-
-const msgContextMenu = document.getElementById("msgContextMenu");
-const ctxReply = document.getElementById("ctxReply");
-const ctxEdit = document.getElementById("ctxEdit");
-const ctxCopy = document.getElementById("ctxCopy");
-const ctxReact = document.getElementById("ctxReact");
-const reactEmojiBar = document.getElementById("reactEmojiBar");
-
-const replyBanner = document.getElementById("replyBanner");
-const replyTargetName = document.getElementById("replyTargetName");
-const closeReplyBanner = document.getElementById("closeReplyBanner");
-
-const profilePopover = document.getElementById("profilePopover");
-const popoverAvatar = document.getElementById("popoverAvatar");
-const popoverAvatarInitial = document.getElementById("popoverAvatarInitial");
-const popoverAvatarOverlay = document.getElementById("popoverAvatarOverlay");
-const popoverUsername = document.getElementById("popoverUsername");
-const popoverCreatedDate = document.getElementById("popoverCreatedDate");
-const popoverPronounsInput = document.getElementById("popoverPronounsInput");
-const popoverBioInput = document.getElementById("popoverBioInput");
-const popoverBioReadonly = document.getElementById("popoverBioReadonly");
-
-/* INIT EMOJI ARSENALS */
-EMOJIS.forEach(emoji => {
-  const btn = document.createElement("button");
-  btn.className = "emoji-item";
-  btn.innerText = emoji;
-  btn.onclick = () => {
-    messageInput.value += emoji;
-    messageInput.focus();
-    emojiPicker.classList.add("hidden");
+  const firebaseConfig = {
+    apiKey: "AIzaSyDwbKfr5JE5PYD6cfcHhIEWvxArRxSO4jc",
+    authDomain: "my-chat-app-8642f.firebaseapp.com",
+    projectId: "my-chat-app-8642f",
+    storageBucket: "my-chat-app-8642f.firebasestorage.app",
+    messagingSenderId: "499946135911",
+    appId: "1:499946135911:web:41928a278da6cc51f68fc2",
+    measurementId: "G-4VDXSFCBG0",
+    databaseURL: "https://my-chat-app-8642f-default-rtdb.firebaseio.com"
   };
-  emojiGrid.appendChild(btn);
 
-  const reactBtn = document.createElement("button");
-  reactBtn.className = "emoji-item";
-  reactBtn.innerText = emoji;
-  reactBtn.onclick = (e) => {
-    e.stopPropagation();
-    if (activeContextMsg) {
-      toggleReaction(activeContextMsg, emoji);
-    }
-    msgContextMenu.classList.add("hidden");
-  };
-  reactEmojiBar.appendChild(reactBtn);
-});
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-/* MENU & INPUT POPUPS */
-plusBtn.onclick = (e) => {
-  e.stopPropagation();
-  emojiPicker.classList.add("hidden");
-  plusMenu.classList.toggle("hidden");
-};
+  const EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","😉","😍","😘","😜","🤔","😎","😭","😡","👍","👎","🔥","💀"];
 
-uploadOption.onclick = (e) => {
-  e.stopPropagation();
-  plusMenu.classList.add("hidden");
-  fileInput.click();
-};
+  let username = "";
+  let userPassword = "";
+  let isRegisterMode = false;
 
-fileInput.onchange = async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
+  let currentContext = { type: 'channel', id: 'general-chat' }; 
+  let activeDms = new Set();
+  let activeThreads = new Set(["general-chat"]); 
+  let cachedMessages = [];
+  let pendingLocalMessages = []; 
+  let renderedMessageIds = new Set();
+  let messageReactions = {}; 
+  let userMessageReactions = {}; 
+  let userProfiles = {}; 
 
-  const target_dm = getCurrentTargetDm();
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const base64Data = e.target.result;
-    const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
-    
-    const localMsg = {
-      localId: localId,
-      client_id: localId,
-      username: username,
-      message: `Uploading ${file.name}...`,
-      target_dm: target_dm,
-      reply_to: activeReplyTarget ? activeReplyTarget.id : "",
-      created_at: new Date().toISOString()
+  let currentThreadKeys = "";
+  let currentDmKeys = "";
+  let activeContextMsg = null; 
+  let activeReplyTarget = null;
+  let activeProfileUser = null;
+
+  let typingTimeout = null;
+  let lastTypingSentTime = 0;
+  let serverTypingMap = {};
+
+  const loginContainerEl = document.getElementById("login-container");
+  const appEl = document.getElementById("app");
+  const messagesEl = document.getElementById("messages");
+  const messageInput = document.getElementById("message");
+
+  const typingIndicator = document.getElementById("typingIndicator");
+  const typingText = document.getElementById("typingText");
+
+  const authBtn = document.getElementById("authBtn");
+  const authBtnText = document.getElementById("authBtnText");
+  const authToggleBtn = document.getElementById("authToggleBtn");
+  const authToggleLabel = document.getElementById("authToggleLabel");
+  const authTitle = document.getElementById("authTitle");
+
+  const plusBtn = document.getElementById("plusBtn");
+  const plusMenu = document.getElementById("plusMenu");
+  const uploadOption = document.getElementById("uploadOption");
+  const fileInput = document.getElementById("fileInput");
+  const pfpFileInput = document.getElementById("pfpFileInput");
+  const emojisOption = document.getElementById("emojisOption");
+  const emojiPicker = document.getElementById("emojiPicker");
+  const emojiGrid = document.getElementById("emojiGrid");
+
+  const msgContextMenu = document.getElementById("msgContextMenu");
+  const ctxReply = document.getElementById("ctxReply");
+  const ctxEdit = document.getElementById("ctxEdit");
+  const ctxCopy = document.getElementById("ctxCopy");
+  const ctxReact = document.getElementById("ctxReact");
+  const reactEmojiBar = document.getElementById("reactEmojiBar");
+
+  const replyBanner = document.getElementById("replyBanner");
+  const replyTargetName = document.getElementById("replyTargetName");
+  const closeReplyBanner = document.getElementById("closeReplyBanner");
+
+  const profilePopover = document.getElementById("profilePopover");
+  const popoverAvatar = document.getElementById("popoverAvatar");
+  const popoverAvatarInitial = document.getElementById("popoverAvatarInitial");
+  const popoverAvatarOverlay = document.getElementById("popoverAvatarOverlay");
+  const popoverUsername = document.getElementById("popoverUsername");
+  const popoverCreatedDate = document.getElementById("popoverCreatedDate");
+  const popoverPronounsInput = document.getElementById("popoverPronounsInput");
+  const popoverBioInput = document.getElementById("popoverBioInput");
+  const popoverBioReadonly = document.getElementById("popoverBioReadonly");
+
+  /* INIT EMOJI ARSENALS */
+  EMOJIS.forEach(emoji => {
+    const btn = document.createElement("button");
+    btn.className = "emoji-item";
+    btn.innerText = emoji;
+    btn.onclick = () => {
+      messageInput.value += emoji;
+      messageInput.focus();
+      emojiPicker.classList.add("hidden");
     };
-    pendingLocalMessages.push(localMsg);
-    
-    clearReplyState();
-    renderMessages(true);
+    emojiGrid.appendChild(btn);
+
+    const reactBtn = document.createElement("button");
+    reactBtn.className = "emoji-item";
+    reactBtn.innerText = emoji;
+    reactBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (activeContextMsg) {
+        toggleReaction(activeContextMsg, emoji);
+      }
+      msgContextMenu.classList.add("hidden");
+    };
+    reactEmojiBar.appendChild(reactBtn);
+  });
+
+  /* MENU & INPUT POPUPS */
+  plusBtn.onclick = (e) => {
+    e.stopPropagation();
+    emojiPicker.classList.add("hidden");
+    plusMenu.classList.toggle("hidden");
+  };
+
+  uploadOption.onclick = (e) => {
+    e.stopPropagation();
+    plusMenu.classList.add("hidden");
+    fileInput.click();
+  };
+
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const target_dm = getCurrentTargetDm();
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Data = e.target.result;
+      const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
+      
+      const fileMessageText = file.type.startsWith("image/") 
+        ? `[IMAGE:${base64Data}|${file.name}]` 
+        : `[FILE:${base64Data}|${file.name}]`;
+
+      const localMsg = {
+        localId: localId,
+        client_id: localId,
+        username: username,
+        message: fileMessageText,
+        target_dm: target_dm,
+        reply_to: activeReplyTarget ? activeReplyTarget.id : "",
+        created_at: new Date().toISOString()
+      };
+      pendingLocalMessages.push(localMsg);
+      
+      clearReplyState();
+      renderMessages(true);
+
+      try {
+        const msgRef = push(ref(db, 'messages'));
+        await set(msgRef, {
+          username: username,
+          message: fileMessageText,
+          target_dm: target_dm,
+          reply_to: localMsg.reply_to,
+          client_id: localId,
+          created_at: localMsg.created_at
+        });
+        localMsg.id = msgRef.key;
+      } catch (err) {
+        alert("Failed to upload file.");
+      } finally {
+        fileInput.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  emojisOption.onclick = (e) => {
+    e.stopPropagation();
+    plusMenu.classList.add("hidden");
+    emojiPicker.classList.remove("hidden");
+  };
+
+  document.addEventListener("click", () => {
+    plusMenu.classList.add("hidden");
+    emojiPicker.classList.add("hidden");
+    msgContextMenu.classList.add("hidden");
+    profilePopover.classList.add("hidden");
+  });
+
+  plusMenu.onclick = (e) => e.stopPropagation();
+  emojiPicker.onclick = (e) => e.stopPropagation();
+  msgContextMenu.onclick = (e) => e.stopPropagation();
+  profilePopover.onclick = (e) => e.stopPropagation();
+
+  /* AUTHENTICATION SETUP (FIREBASE REALTIME DB) */
+  authToggleBtn.onclick = () => {
+    isRegisterMode = !isRegisterMode;
+    authTitle.textContent = isRegisterMode ? "Create an account" : "Welcome back!";
+    authBtnText.textContent = isRegisterMode ? "Continue" : "Log In";
+    authToggleLabel.textContent = isRegisterMode ? "Already have an account?" : "Need an account?";
+    authToggleBtn.textContent = isRegisterMode ? "Register" : "Log In";
+  };
+
+  authBtn.onclick = async () => {
+    const user = document.getElementById("usernameInput").value.trim();
+    const pass = document.getElementById("passwordInput").value.trim();
+    if (!user || !pass) return alert("Please enter username and password.");
+
+    authBtn.classList.add("processing-state");
+    authBtnText.textContent = "Connecting...";
+    username = user;
+    userPassword = pass;
+
+    const sanitizeUsername = user.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const userRef = ref(db, `users/${sanitizeUsername}`);
 
     try {
-      const payload = {
-        action: "upload", username, password: userPassword,
-        fileName: file.name, fileType: file.type, fileData: base64Data,
-        target_dm, reply_to: localMsg.reply_to, client_id: localId
-      };
-      const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-      const result = await res.json();
-      if (result.id) {
-        localMsg.id = result.id;
+      const snapshot = await get(userRef);
+      if (isRegisterMode) {
+        if (snapshot.exists()) {
+          alert("Auth Error: Username is already taken.");
+          authBtn.classList.remove("processing-state");
+          authBtnText.textContent = "Continue";
+          return;
+        }
+        await set(userRef, {
+          username: username,
+          password: userPassword,
+          created_at: new Date().toISOString()
+        });
+      } else {
+        if (!snapshot.exists()) {
+          alert("Auth Error: User does not exist.");
+          authBtn.classList.remove("processing-state");
+          authBtnText.textContent = "Log In";
+          return;
+        }
+        const userData = snapshot.val();
+        if (userData.password !== userPassword) {
+          alert("Auth Error: Incorrect password.");
+          authBtn.classList.remove("processing-state");
+          authBtnText.textContent = "Log In";
+          return;
+        }
       }
-      fetchMessages();
     } catch (err) {
-      alert("Failed to upload file.");
-    } finally {
-      fileInput.value = "";
-    }
-  };
-  reader.readAsDataURL(file);
-};
-
-emojisOption.onclick = (e) => {
-  e.stopPropagation();
-  plusMenu.classList.add("hidden");
-  emojiPicker.classList.remove("hidden");
-};
-
-document.addEventListener("click", () => {
-  plusMenu.classList.add("hidden");
-  emojiPicker.classList.add("hidden");
-  msgContextMenu.classList.add("hidden");
-  profilePopover.classList.add("hidden");
-});
-
-plusMenu.onclick = (e) => e.stopPropagation();
-emojiPicker.onclick = (e) => e.stopPropagation();
-msgContextMenu.onclick = (e) => e.stopPropagation();
-profilePopover.onclick = (e) => e.stopPropagation();
-
-/* AUTHENTICATION SETUP */
-authToggleBtn.onclick = () => {
-  isRegisterMode = !isRegisterMode;
-  authTitle.textContent = isRegisterMode ? "Create an account" : "Welcome back!";
-  authBtnText.textContent = isRegisterMode ? "Continue" : "Log In";
-  authToggleLabel.textContent = isRegisterMode ? "Already have an account?" : "Need an account?";
-  authToggleBtn.textContent = isRegisterMode ? "Register" : "Log In";
-};
-
-authBtn.onclick = async () => {
-  const user = document.getElementById("usernameInput").value.trim();
-  const pass = document.getElementById("passwordInput").value.trim();
-  if (!user || !pass) return alert("Please enter username and password.");
-
-  authBtn.classList.add("processing-state");
-  authBtnText.textContent = "Connecting...";
-  username = user;
-  userPassword = pass;
-
-  try {
-    const params = new URLSearchParams({ action: isRegisterMode ? "register" : "login", username, password: userPassword });
-    const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
-    const result = await res.json();
-
-    if (result.error) {
-      alert("Auth Error: " + result.error);
+      console.warn("Auth error:", err);
+      alert("Authentication error: " + err.message);
       authBtn.classList.remove("processing-state");
       authBtnText.textContent = isRegisterMode ? "Continue" : "Log In";
       return;
     }
-  } catch (err) {
-    console.warn("Auth network log:", err);
+
+    document.getElementById("myDisplayUsername").textContent = username;
+    document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
+
+    loginContainerEl.classList.add("hidden");
+    appEl.classList.remove("hidden");
+    appEl.classList.add("animate-pop");
+
+    initFirebaseListeners();
+  };
+
+  function initFirebaseListeners() {
+    onValue(ref(db, 'messages'), (snapshot) => {
+      const data = snapshot.val();
+      const loadedMessages = [];
+      if (data) {
+        Object.keys(data).forEach(key => {
+          loadedMessages.push({ id: key, ...data[key] });
+        });
+      }
+      cachedMessages = loadedMessages;
+      renderMessages();
+    });
+
+    onValue(ref(db, 'users'), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        userProfiles = {};
+        Object.values(data).forEach(u => {
+          if (u.username) {
+            userProfiles[u.username.toLowerCase()] = u;
+          }
+        });
+        updateMyProfileUI();
+      }
+    });
+
+    onValue(ref(db, 'typing'), (snapshot) => {
+      serverTypingMap = snapshot.val() || {};
+      renderTypingIndicator();
+    });
   }
 
-  document.getElementById("myDisplayUsername").textContent = username;
-  document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
+  /* PROFILE POPOVER LOGIC WITH CREATED DATE */
+  document.getElementById("myProfilePanel").onclick = (e) => {
+    e.stopPropagation();
+    openProfileCard(username);
+  };
 
-  loginContainerEl.classList.add("hidden");
-  appEl.classList.remove("hidden");
-  appEl.classList.add("animate-pop");
+  function openProfileCard(targetUser) {
+    activeProfileUser = targetUser;
+    const isMe = targetUser.toLowerCase() === username.toLowerCase();
+    const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser, pronouns: "", bio: "", avatar_url: "", created_at: "" };
 
-  fetchMessages();
-  if (!pollingInterval) {
-    pollingInterval = setInterval(fetchMessages, 1200);
-  }
-};
+    popoverUsername.textContent = profile.username || targetUser;
 
-/* PROFILE POPOVER LOGIC WITH CREATED DATE */
-document.getElementById("myProfilePanel").onclick = (e) => {
-  e.stopPropagation();
-  openProfileCard(username);
-};
-
-function openProfileCard(targetUser) {
-  activeProfileUser = targetUser;
-  const isMe = targetUser.toLowerCase() === username.toLowerCase();
-  const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser, pronouns: "", bio: "", avatar_url: "", created_at: "" };
-
-  popoverUsername.textContent = profile.username || targetUser;
-
-  if (profile.created_at) {
-    const dateObj = new Date(profile.created_at);
-    if (!isNaN(dateObj)) {
-      const formattedDate = dateObj.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
-      popoverCreatedDate.textContent = `Member Since: ${formattedDate}`;
+    if (profile.created_at) {
+      const dateObj = new Date(profile.created_at);
+      if (!isNaN(dateObj)) {
+        const formattedDate = dateObj.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+        popoverCreatedDate.textContent = `Member Since: ${formattedDate}`;
+      } else {
+        popoverCreatedDate.textContent = "Member Since: --";
+      }
     } else {
       popoverCreatedDate.textContent = "Member Since: --";
     }
-  } else {
-    popoverCreatedDate.textContent = "Member Since: --";
-  }
 
-  if (profile.avatar_url) {
-    popoverAvatar.style.backgroundImage = `url("${profile.avatar_url}")`;
-    popoverAvatarInitial.textContent = "";
-  } else {
-    popoverAvatar.style.backgroundImage = "none";
-    popoverAvatarInitial.textContent = (profile.username || targetUser).charAt(0).toUpperCase();
-  }
-
-  if (isMe) {
-    popoverAvatarOverlay.classList.remove("hidden");
-    popoverAvatar.onclick = () => pfpFileInput.click();
-
-    popoverPronounsInput.value = profile.pronouns || "";
-    popoverPronounsInput.readOnly = false;
-    popoverPronounsInput.placeholder = "+ Pronouns";
-
-    popoverBioInput.value = profile.bio || "";
-    popoverBioInput.classList.remove("hidden");
-    popoverBioReadonly.classList.add("hidden");
-  } else {
-    popoverAvatarOverlay.classList.add("hidden");
-    popoverAvatar.onclick = null;
-
-    popoverPronounsInput.value = profile.pronouns || "";
-    popoverPronounsInput.readOnly = true;
-    popoverPronounsInput.placeholder = "";
-
-    popoverBioReadonly.textContent = profile.bio || "No bio provided.";
-    popoverBioReadonly.classList.remove("hidden");
-    popoverBioInput.classList.add("hidden");
-  }
-
-  profilePopover.classList.remove("hidden");
-}
-
-/* AVATAR UPLOAD HANDLER */
-pfpFileInput.onchange = () => {
-  const file = pfpFileInput.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const base64Img = e.target.result;
-    
-    if (!userProfiles[username.toLowerCase()]) userProfiles[username.toLowerCase()] = {};
-    userProfiles[username.toLowerCase()].avatar_url = base64Img;
-
-    updateMyProfileUI();
-    saveProfileChanges({ avatar_url: base64Img });
-  };
-  reader.readAsDataURL(file);
-};
-
-popoverPronounsInput.onchange = () => {
-  if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
-    const val = popoverPronounsInput.value.trim();
-    userProfiles[username.toLowerCase()].pronouns = val;
-    updateMyProfileUI();
-    saveProfileChanges({ pronouns: val });
-  }
-};
-
-popoverBioInput.onchange = () => {
-  if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
-    const val = popoverBioInput.value.trim();
-    userProfiles[username.toLowerCase()].bio = val;
-    saveProfileChanges({ bio: val });
-  }
-};
-
-async function saveProfileChanges(changes) {
-  try {
-    const payload = {
-      action: "update_profile",
-      username: username,
-      password: userPassword,
-      ...changes
-    };
-    await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-    fetchMessages();
-  } catch (err) {
-    console.error("Failed to update profile", err);
-  }
-}
-
-function updateMyProfileUI() {
-  const myProfile = userProfiles[username.toLowerCase()];
-  if (!myProfile) return;
-
-  const myAvatarEl = document.getElementById("myAvatarInitial");
-  if (myProfile.avatar_url) {
-    myAvatarEl.style.backgroundImage = `url("${myProfile.avatar_url}")`;
-    myAvatarEl.textContent = "";
-  } else {
-    myAvatarEl.style.backgroundImage = "none";
-    myAvatarEl.textContent = username.charAt(0).toUpperCase();
-  }
-
-  document.getElementById("myDisplayPronouns").textContent = myProfile.pronouns || "Online";
-}
-
-/* HELPERS */
-function getDmRoomId(userA, userB) {
-  return [userA.trim().toLowerCase(), userB.trim().toLowerCase()].sort().join(":");
-}
-
-function getCurrentTargetDm() {
-  if (currentContext.type === 'dm') return getDmRoomId(username, currentContext.id);
-  if (currentContext.type === 'channel' && currentContext.id !== 'general-chat') return `channel:${currentContext.id}`;
-  return "channel:general-chat";
-}
-
-function matchesContext(msg) {
-  const target = msg.target_dm || "";
-  if (currentContext.type === 'channel') {
-    if (currentContext.id === 'general-chat') return target === "" || target === "channel:general-chat";
-    return target === `channel:${currentContext.id}`;
-  } else {
-    if (!target.includes(":")) return false; 
-    return target.toLowerCase() === getDmRoomId(username, currentContext.id);
-  }
-}
-
-function escapeHtml(str) {
-  if (!str) return "";
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
-
-function formatMessageContent(msgText) {
-  if (!msgText) return "";
-  const imageMatch = msgText.match(/^\[IMAGE:(.+)\|(.+)\]$/);
-  if (imageMatch) return `<a href="${escapeHtml(imageMatch[1])}" target="_blank"><img src="${escapeHtml(imageMatch[1])}" alt="${escapeHtml(imageMatch[2])}" class="chat-image"></a>`;
-
-  const fileMatch = msgText.match(/^\[FILE:(.+)\|(.+)\]$/);
-  if (fileMatch) return `<a href="${escapeHtml(fileMatch[1])}" target="_blank" class="chat-file-box">📄 Download ${escapeHtml(fileMatch[2])}</a>`;
-
-  return escapeHtml(msgText);
-}
-
-/*
- * STABLE DOM ID FOR A MESSAGE.
- * The key fix for the send-flicker: every message sent by any client carries a client_id
- * generated locally before the server round-trip. We key the DOM element off that client_id
- * (when present) instead of the server-assigned id. That means the *same* DOM element used
- * for the optimistic "pending" message is reused once the server confirms it — its id, text,
- * and reaction data get updated in place instead of the pending element being torn down and
- * a brand-new element (with a new id) being created and re-animated in its place.
- */
-function getMsgDomId(msg) {
-  const rawId = msg.client_id
-    ? `client_${msg.client_id}`
-    : (msg.id || msg.localId || `${msg.username}_${msg.created_at}`);
-  return `msg_${String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-}
-
-/* CLICK & REACTION DISPATCHERS WITH OVERHEAD CONTEXT MENU */
-function attachMessageClickHandlers(div, msg) {
-  div.onclick = (e) => {
-    e.stopPropagation();
-    activeContextMsg = msg;
-    reactEmojiBar.classList.add("hidden");
-
-    const isOwnMessage = msg.username && msg.username.toLowerCase() === username.toLowerCase();
-    const hasRealId = msg.id && !msg.id.startsWith("pending_");
-
-    if (isOwnMessage && hasRealId) ctxEdit.classList.remove("hidden");
-    else ctxEdit.classList.add("hidden");
-
-    msgContextMenu.classList.remove("hidden");
-    const rect = div.getBoundingClientRect();
-    const menuHeight = msgContextMenu.offsetHeight || 160;
-
-    let posX = Math.min(e.clientX, window.innerWidth - 180);
-    let posY = rect.top - menuHeight - 6;
-
-    if (posY < 10) {
-      posY = rect.bottom + 6;
+    if (profile.avatar_url) {
+      popoverAvatar.style.backgroundImage = `url("${profile.avatar_url}")`;
+      popoverAvatarInitial.textContent = "";
+    } else {
+      popoverAvatar.style.backgroundImage = "none";
+      popoverAvatarInitial.textContent = (profile.username || targetUser).charAt(0).toUpperCase();
     }
 
-    msgContextMenu.style.left = `${posX}px`;
-    msgContextMenu.style.top = `${posY}px`;
-  };
-}
+    if (isMe) {
+      popoverAvatarOverlay.classList.remove("hidden");
+      popoverAvatar.onclick = () => pfpFileInput.click();
 
-ctxReply.onclick = () => {
-  activeReplyTarget = activeContextMsg;
-  replyTargetName.textContent = activeReplyTarget.username;
-  replyBanner.classList.remove("hidden");
-  msgContextMenu.classList.add("hidden");
-  messageInput.focus();
-};
+      popoverPronounsInput.value = profile.pronouns || "";
+      popoverPronounsInput.readOnly = false;
+      popoverPronounsInput.placeholder = "+ Pronouns";
 
-closeReplyBanner.onclick = () => clearReplyState();
-function clearReplyState() {
-  activeReplyTarget = null;
-  replyBanner.classList.add("hidden");
-}
+      popoverBioInput.value = profile.bio || "";
+      popoverBioInput.classList.remove("hidden");
+      popoverBioReadonly.classList.add("hidden");
+    } else {
+      popoverAvatarOverlay.classList.add("hidden");
+      popoverAvatar.onclick = null;
 
-ctxCopy.onclick = () => {
-  if (activeContextMsg && activeContextMsg.message) navigator.clipboard.writeText(activeContextMsg.message);
-  msgContextMenu.classList.add("hidden");
-};
+      popoverPronounsInput.value = profile.pronouns || "";
+      popoverPronounsInput.readOnly = true;
+      popoverPronounsInput.placeholder = "";
 
-ctxEdit.onclick = async () => {
-  msgContextMenu.classList.add("hidden");
-  if (!activeContextMsg || !activeContextMsg.id || activeContextMsg.id.startsWith("pending_")) return;
+      popoverBioReadonly.textContent = profile.bio || "No bio provided.";
+      popoverBioReadonly.classList.remove("hidden");
+      popoverBioInput.classList.add("hidden");
+    }
 
-  const currentText = activeContextMsg.message || "";
-  const newText = prompt("Edit your message:", currentText);
-
-  if (newText !== null && newText.trim() !== "" && newText !== currentText) {
-    try {
-      const payload = { action: "edit", username, password: userPassword, message_id: activeContextMsg.id, new_message: newText.trim() };
-      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-      fetchMessages();
-    } catch (err) {}
-  }
-};
-
-ctxReact.onclick = () => reactEmojiBar.classList.toggle("hidden");
-
-/*
- * toggleReaction now takes the full message object rather than a pre-built DOM id string.
- * - The DOM/local bookkeeping key is the stable client_id-based id (getMsgDomId).
- * - The id sent to the backend is always the real server message id (msg.id), so reactions
- *   on freshly-sent messages still work correctly even though the DOM key differs.
- */
-async function toggleReaction(msg, emoji) {
-  const domId = getMsgDomId(msg);
-  const realId = msg.id;
-
-  if (!messageReactions[domId]) messageReactions[domId] = {};
-  if (!userMessageReactions[domId]) userMessageReactions[domId] = {};
-
-  if (userMessageReactions[domId][emoji]) {
-    userMessageReactions[domId][emoji] = false;
-    messageReactions[domId][emoji] = Math.max(0, (messageReactions[domId][emoji] || 1) - 1);
-    if (messageReactions[domId][emoji] === 0) delete messageReactions[domId][emoji];
-  } else {
-    userMessageReactions[domId][emoji] = true;
-    messageReactions[domId][emoji] = (messageReactions[domId][emoji] || 0) + 1;
+    profilePopover.classList.remove("hidden");
   }
 
-  renderReactions(domId, msg);
+  /* AVATAR UPLOAD HANDLER */
+  pfpFileInput.onchange = () => {
+    const file = pfpFileInput.files[0];
+    if (!file) return;
 
-  if (realId && !realId.startsWith("pending_")) {
-    try {
-      const payload = { action: "react", username, password: userPassword, message_id: realId, emoji };
-      await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-      fetchMessages();
-    } catch (err) {}
-  }
-}
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Img = e.target.result;
+      
+      if (!userProfiles[username.toLowerCase()]) userProfiles[username.toLowerCase()] = {};
+      userProfiles[username.toLowerCase()].avatar_url = base64Img;
 
-function renderReactions(msgId, msg) {
-  const reactionsDiv = document.getElementById(`reactions_${msgId}`);
-  if (!reactionsDiv) return;
-
-  reactionsDiv.innerHTML = "";
-  if (!messageReactions[msgId]) return;
-
-  Object.entries(messageReactions[msgId]).forEach(([emoji, count]) => {
-    if (count <= 0) return;
-    const badge = document.createElement("span");
-    const isReactedByMe = userMessageReactions[msgId] && userMessageReactions[msgId][emoji];
-    badge.className = `reaction-badge ${isReactedByMe ? 'reacted' : ''}`;
-    badge.innerHTML = `${emoji} <span>${count}</span>`;
-    badge.onclick = (e) => {
-      e.stopPropagation();
-      toggleReaction(msg, emoji);
+      updateMyProfileUI();
+      saveProfileChanges({ avatar_url: base64Img });
     };
-    reactionsDiv.appendChild(badge);
-  });
-}
+    reader.readAsDataURL(file);
+  };
 
-function renderTypingIndicator() {
-  const roomKey = getCurrentTargetDm();
-  const typingUsersInRoom = serverTypingMap[roomKey] || [];
-  const otherTypingUsers = typingUsersInRoom.filter(u => u.toLowerCase() !== username.toLowerCase());
+  popoverPronounsInput.onchange = () => {
+    if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
+      const val = popoverPronounsInput.value.trim();
+      userProfiles[username.toLowerCase()].pronouns = val;
+      updateMyProfileUI();
+      saveProfileChanges({ pronouns: val });
+    }
+  };
 
-  if (otherTypingUsers.length === 0) {
-    typingIndicator.classList.add("hidden");
-    return;
+  popoverBioInput.onchange = () => {
+    if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
+      const val = popoverBioInput.value.trim();
+      userProfiles[username.toLowerCase()].bio = val;
+      saveProfileChanges({ bio: val });
+    }
+  };
+
+  async function saveProfileChanges(changes) {
+    try {
+      const sanitizeUsername = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      await update(ref(db, `users/${sanitizeUsername}`), changes);
+    } catch (err) {
+      console.error("Failed to update profile", err);
+    }
   }
 
-  let text = "";
-  if (otherTypingUsers.length === 1) text = `<b>${escapeHtml(otherTypingUsers[0])}</b> is typing...`;
-  else if (otherTypingUsers.length === 2) text = `<b>${escapeHtml(otherTypingUsers[0])}</b> and <b>${escapeHtml(otherTypingUsers[1])}</b> are typing...`;
-  else text = "Several people are typing...";
+  function updateMyProfileUI() {
+    const myProfile = userProfiles[username.toLowerCase()];
+    if (!myProfile) return;
 
-  typingText.innerHTML = text;
-  typingIndicator.classList.remove("hidden");
-}
+    const myAvatarEl = document.getElementById("myAvatarInitial");
+    if (myProfile.avatar_url) {
+      myAvatarEl.style.backgroundImage = `url("${myProfile.avatar_url}")`;
+      myAvatarEl.textContent = "";
+    } else {
+      myAvatarEl.style.backgroundImage = "none";
+      myAvatarEl.textContent = username.charAt(0).toUpperCase();
+    }
 
-function sendTypingSignal(isTyping) {
-  if (!username) return;
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "typing", username, target_dm: getCurrentTargetDm(), is_typing: isTyping })
-  }).catch(() => {});
-}
+    document.getElementById("myDisplayPronouns").textContent = myProfile.pronouns || "Online";
+  }
 
-/* RENDER MESSAGES & MERGE REACTION STATES PREVENTING FLICKER & DUPLICATES */
-function renderMessages(forceScroll = false) {
-  let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 50);
+  /* HELPERS */
+  function getDmRoomId(userA, userB) {
+    return [userA.trim().toLowerCase(), userB.trim().toLowerCase()].sort().join(":");
+  }
 
-  const serverClientIds = new Set();
-  const serverMsgIds = new Set();
+  function getCurrentTargetDm() {
+    if (currentContext.type === 'dm') return getDmRoomId(username, currentContext.id);
+    if (currentContext.type === 'channel' && currentContext.id !== 'general-chat') return `channel:${currentContext.id}`;
+    return "channel:general-chat";
+  }
 
-  cachedMessages.forEach((msg) => {
-    if (msg.client_id) serverClientIds.add(msg.client_id);
-    if (msg.id) serverMsgIds.add(msg.id);
-
+  function matchesContext(msg) {
     const target = msg.target_dm || "";
-    if (target.startsWith("channel:") && target !== "channel:general-chat") {
-      activeThreads.add(target.replace("channel:", ""));
-    } else if (target && target.includes(":") && !target.startsWith("channel:")) {
-      const parts = target.split(":");
-      const myLower = username.toLowerCase();
-      if (parts[0] && parts[0].toLowerCase() === myLower) activeDms.add(parts[1]);
-      if (parts[1] && parts[1].toLowerCase() === myLower) activeDms.add(parts[0]);
+    if (currentContext.type === 'channel') {
+      if (currentContext.id === 'general-chat') return target === "" || target === "channel:general-chat";
+      return target === `channel:${currentContext.id}`;
+    } else {
+      if (!target.includes(":")) return false; 
+      return target.toLowerCase() === getDmRoomId(username, currentContext.id);
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function formatMessageContent(msgText) {
+    if (!msgText) return "";
+    const imageMatch = msgText.match(/^\[IMAGE:(.+)\|(.+)\]$/);
+    if (imageMatch) return `<a href="${escapeHtml(imageMatch[1])}" target="_blank"><img src="${escapeHtml(imageMatch[1])}" alt="${escapeHtml(imageMatch[2])}" class="chat-image"></a>`;
+
+    const fileMatch = msgText.match(/^\[FILE:(.+)\|(.+)\]$/);
+    if (fileMatch) return `<a href="${escapeHtml(fileMatch[1])}" target="_blank" class="chat-file-box">📄 Download ${escapeHtml(fileMatch[2])}</a>`;
+
+    return escapeHtml(msgText);
+  }
+
+  function getMsgDomId(msg) {
+    const rawId = msg.client_id
+      ? `client_${msg.client_id}`
+      : (msg.id || msg.localId || `${msg.username}_${msg.created_at}`);
+    return `msg_${String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+  }
+
+  /* CLICK & REACTION DISPATCHERS WITH OVERHEAD CONTEXT MENU */
+  function attachMessageClickHandlers(div, msg) {
+    div.onclick = (e) => {
+      e.stopPropagation();
+      activeContextMsg = msg;
+      reactEmojiBar.classList.add("hidden");
+
+      const isOwnMessage = msg.username && msg.username.toLowerCase() === username.toLowerCase();
+      const hasRealId = msg.id && !msg.id.startsWith("pending_");
+
+      if (isOwnMessage && hasRealId) ctxEdit.classList.remove("hidden");
+      else ctxEdit.classList.add("hidden");
+
+      msgContextMenu.classList.remove("hidden");
+      const rect = div.getBoundingClientRect();
+      const menuHeight = msgContextMenu.offsetHeight || 160;
+
+      let posX = Math.min(e.clientX, window.innerWidth - 180);
+      let posY = rect.top - menuHeight - 6;
+
+      if (posY < 10) {
+        posY = rect.bottom + 6;
+      }
+
+      msgContextMenu.style.left = `${posX}px`;
+      msgContextMenu.style.top = `${posY}px`;
+    };
+  }
+
+  ctxReply.onclick = () => {
+    activeReplyTarget = activeContextMsg;
+    replyTargetName.textContent = activeReplyTarget.username;
+    replyBanner.classList.remove("hidden");
+    msgContextMenu.classList.add("hidden");
+    messageInput.focus();
+  };
+
+  closeReplyBanner.onclick = () => clearReplyState();
+  function clearReplyState() {
+    activeReplyTarget = null;
+    replyBanner.classList.add("hidden");
+  }
+
+  ctxCopy.onclick = () => {
+    if (activeContextMsg && activeContextMsg.message) navigator.clipboard.writeText(activeContextMsg.message);
+    msgContextMenu.classList.add("hidden");
+  };
+
+  ctxEdit.onclick = async () => {
+    msgContextMenu.classList.add("hidden");
+    if (!activeContextMsg || !activeContextMsg.id || activeContextMsg.id.startsWith("pending_")) return;
+
+    const currentText = activeContextMsg.message || "";
+    const newText = prompt("Edit your message:", currentText);
+
+    if (newText !== null && newText.trim() !== "" && newText !== currentText) {
+      try {
+        await update(ref(db, `messages/${activeContextMsg.id}`), {
+          message: newText.trim(),
+          is_edited: true
+        });
+      } catch (err) {}
+    }
+  };
+
+  ctxReact.onclick = () => reactEmojiBar.classList.toggle("hidden");
+
+  async function toggleReaction(msg, emoji) {
+    const domId = getMsgDomId(msg);
+    const realId = msg.id;
+
+    if (!messageReactions[domId]) messageReactions[domId] = {};
+    if (!userMessageReactions[domId]) userMessageReactions[domId] = {};
+
+    let currentUsers = [];
+    if (msg.reactions && msg.reactions[emoji]) {
+      currentUsers = Array.from(msg.reactions[emoji]);
     }
 
-    if (msg.id && !msg.id.startsWith("pending_")) {
+    const userIdx = currentUsers.indexOf(username);
+    if (userIdx > -1) {
+      currentUsers.splice(userIdx, 1);
+    } else {
+      currentUsers.push(username);
+    }
+
+    if (realId && !realId.startsWith("pending_")) {
+      try {
+        await set(ref(db, `messages/${realId}/reactions/${emoji}`), currentUsers);
+      } catch (err) {}
+    }
+  }
+
+  function renderReactions(msgId, msg) {
+    const reactionsDiv = document.getElementById(`reactions_${msgId}`);
+    if (!reactionsDiv) return;
+
+    reactionsDiv.innerHTML = "";
+    if (!messageReactions[msgId]) return;
+
+    Object.entries(messageReactions[msgId]).forEach(([emoji, count]) => {
+      if (count <= 0) return;
+      const badge = document.createElement("span");
+      const isReactedByMe = userMessageReactions[msgId] && userMessageReactions[msgId][emoji];
+      badge.className = `reaction-badge ${isReactedByMe ? 'reacted' : ''}`;
+      badge.innerHTML = `${emoji} <span>${count}</span>`;
+      badge.onclick = (e) => {
+        e.stopPropagation();
+        toggleReaction(msg, emoji);
+      };
+      reactionsDiv.appendChild(badge);
+    });
+  }
+
+  function renderTypingIndicator() {
+    const roomKey = getCurrentTargetDm().replace(/[.#$/\[\]]/g, "_");
+    const typingUsersInRoom = serverTypingMap[roomKey] || {};
+    const otherTypingUsers = Object.keys(typingUsersInRoom).filter(u => u.toLowerCase() !== username.toLowerCase() && typingUsersInRoom[u]);
+
+    if (otherTypingUsers.length === 0) {
+      typingIndicator.classList.add("hidden");
+      return;
+    }
+
+    let text = "";
+    if (otherTypingUsers.length === 1) text = `<b>${escapeHtml(otherTypingUsers[0])}</b> is typing...`;
+    else if (otherTypingUsers.length === 2) text = `<b>${escapeHtml(otherTypingUsers[0])}</b> and <b>${escapeHtml(otherTypingUsers[1])}</b> are typing...`;
+    else text = "Several people are typing...";
+
+    typingText.innerHTML = text;
+    typingIndicator.classList.remove("hidden");
+  }
+
+  function sendTypingSignal(isTyping) {
+    if (!username) return;
+    const roomKey = getCurrentTargetDm().replace(/[.#$/\[\]]/g, "_");
+    const userKey = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    set(ref(db, `typing/${roomKey}/${userKey}`), isTyping).catch(() => {});
+  }
+
+  /* RENDER MESSAGES & MERGE REACTION STATES PREVENTING FLICKER & DUPLICATES */
+  function renderMessages(forceScroll = false) {
+    let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 50);
+
+    const serverClientIds = new Set();
+    const serverMsgIds = new Set();
+
+    cachedMessages.forEach((msg) => {
+      if (msg.client_id) serverClientIds.add(msg.client_id);
+      if (msg.id) serverMsgIds.add(msg.id);
+
+      const target = msg.target_dm || "";
+      if (target.startsWith("channel:") && target !== "channel:general-chat") {
+        activeThreads.add(target.replace("channel:", ""));
+      } else if (target && target.includes(":") && !target.startsWith("channel:")) {
+        const parts = target.split(":");
+        const myLower = username.toLowerCase();
+        if (parts[0] && parts[0].toLowerCase() === myLower) activeDms.add(parts[1]);
+        if (parts[1] && parts[1].toLowerCase() === myLower) activeDms.add(parts[0]);
+      }
+
+      if (msg.id && !msg.id.startsWith("pending_")) {
+        const msgId = getMsgDomId(msg);
+
+        const serverReactions = {};
+        const serverUserReactions = {};
+
+        if (msg.reactions) {
+          Object.entries(msg.reactions).forEach(([emoji, users]) => {
+            const userList = Array.isArray(users) ? users : [];
+            serverReactions[emoji] = userList.length;
+            if (userList.includes(username)) {
+              serverUserReactions[emoji] = true;
+            }
+          });
+        }
+
+        messageReactions[msgId] = serverReactions;
+        userMessageReactions[msgId] = serverUserReactions;
+      }
+    });
+
+    pendingLocalMessages = pendingLocalMessages.filter(pm => {
+      const isConfirmed = serverClientIds.has(pm.client_id || pm.localId) || serverMsgIds.has(pm.id);
+      return !isConfirmed;
+    });
+
+    let allMessages = [...cachedMessages];
+    pendingLocalMessages.forEach(pm => {
+      if (!allMessages.find(am => am.id === pm.localId || am.id === pm.id || am.client_id === pm.client_id)) {
+        allMessages.push({...pm, id: pm.localId});
+      }
+    });
+
+    allMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    allMessages.forEach((msg) => {
+      if (!matchesContext(msg)) return;
+
       const msgId = getMsgDomId(msg);
 
-      const serverReactions = {};
-      const serverUserReactions = {};
+      let div = document.getElementById(msgId);
+      
+      if (!div) {
+        div = document.createElement("div");
+        div.id = msgId;
+        div.classList.add("message");
 
-      if (msg.reactions) {
-        Object.entries(msg.reactions).forEach(([emoji, users]) => {
-          serverReactions[emoji] = users.length;
-          if (Array.isArray(users) && users.includes(username)) {
-            serverUserReactions[emoji] = true;
-          }
-        });
+        if (!renderedMessageIds.has(msgId)) {
+          div.classList.add("animate-pop");
+          renderedMessageIds.add(msgId);
+        }
+        messagesEl.appendChild(div);
       }
 
-      messageReactions[msgId] = serverReactions;
-      userMessageReactions[msgId] = serverUserReactions;
-    }
-  });
+      attachMessageClickHandlers(div, msg);
 
-  // Once the server confirms a locally-sent message (matched by client_id or id), drop it
-  // from the pending list. We deliberately do NOT touch the DOM here — the confirmed message
-  // reuses the exact same element (same client_id-based id) in the render loop below, so there
-  // is nothing to remove/recreate and therefore nothing to flicker or re-animate.
-  pendingLocalMessages = pendingLocalMessages.filter(pm => {
-    const isConfirmed = serverClientIds.has(pm.client_id || pm.localId) || serverMsgIds.has(pm.id);
-    return !isConfirmed;
-  });
-
-  let allMessages = [...cachedMessages];
-  pendingLocalMessages.forEach(pm => {
-    if (!allMessages.find(am => am.id === pm.localId || am.id === pm.id || am.client_id === pm.client_id)) {
-      allMessages.push({...pm, id: pm.localId});
-    }
-  });
-
-  allMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-  allMessages.forEach((msg) => {
-    if (!matchesContext(msg)) return;
-
-    const msgId = getMsgDomId(msg);
-
-    let div = document.getElementById(msgId);
-    
-    if (!div) {
-      div = document.createElement("div");
-      div.id = msgId;
-      div.classList.add("message");
-
-      if (!renderedMessageIds.has(msgId)) {
-        div.classList.add("animate-pop");
-        renderedMessageIds.add(msgId);
-      }
-      messagesEl.appendChild(div);
-    }
-
-    attachMessageClickHandlers(div, msg);
-
-    const msgUser = msg.username || "?";
-    const profile = userProfiles[msgUser.toLowerCase()] || {};
-    const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
-    const initial = msgUser.charAt(0).toUpperCase();
-
-    const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
-    const editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
-
-    let replyHtml = "";
-    if (msg.reply_to) {
-      const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
-      if (parentMsg) {
-        const parentMsgId = getMsgDomId(parentMsg);
-        replyHtml = `
-          <div class="reply-reference" onclick="const pEl = document.getElementById('${parentMsgId}'); if(pEl) pEl.scrollIntoView({behavior: 'smooth', block: 'center'});">
-            <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}
-          </div>
-        `;
-      }
-    }
-
-    div.innerHTML = `
-      <div class="avatar" style="${avatarStyle} ${msg.reply_to ? 'top: 24px;' : ''}" onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${profile.avatar_url ? '' : escapeHtml(initial)}</div>
-      <div class="message-content">
-        ${replyHtml}
-        <div class="message-header">
-          <b onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)}</b>
-          <span class="time">${escapeHtml(time)}</span>
-        </div>
-        <span class="text">${formatMessageContent(msg.message)}${editedLabel}</span>
-        <div id="reactions_${msgId}" class="reactions-container"></div>
-      </div>
-    `;
-
-    renderReactions(msgId, msg);
-  });
-
-  renderSidebars();
-  renderTypingIndicator();
-
-  if (wasAtBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-/* FETCH MESSAGES & PROFILES */
-async function fetchMessages() {
-  try {
-    const res = await fetch(SCRIPT_URL);
-    if (!res.ok) throw new Error("Network error");
-    const data = await res.json();
-    if (data.error) return;
-
-    cachedMessages = Array.isArray(data.messages) ? data.messages : [];
-    serverTypingMap = data.typing_users || {};
-    if (data.profiles) {
-      userProfiles = data.profiles;
-      updateMyProfileUI();
-    }
-    
-    renderMessages();
-  } catch (err) {}
-}
-
-/* SEND MESSAGE */
-async function sendMessage() {
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  const target_dm = getCurrentTargetDm();
-
-  messageInput.value = "";
-  const currentReplyId = activeReplyTarget ? activeReplyTarget.id : "";
-  clearReplyState();
-
-  if (typingTimeout) clearTimeout(typingTimeout);
-  sendTypingSignal(false);
-
-  const localId = "pending_" + (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + "_" + Math.random().toString(36).substr(2, 5)));
-
-  const localMsg = {
-    localId, client_id: localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
-  };
-  pendingLocalMessages.push(localMsg);
-  renderMessages(true);
-
-  try {
-    const params = new URLSearchParams({
-      action: "send", username, password: userPassword, message: text, target_dm, reply_to: currentReplyId, client_id: localId
-    });
-
-    fetch(`${SCRIPT_URL}?${params.toString()}`).then(async res => {
-      const result = await res.json();
-      if (result.id) localMsg.id = result.id;
-      fetchMessages();
-    });
-  } catch (err) {}
-}
-
-/* INPUT TYPING EVENTS */
-messageInput.addEventListener("input", () => {
-  const now = Date.now();
-  if (now - lastTypingSentTime > 2500) {
-    lastTypingSentTime = now;
-    sendTypingSignal(true);
-  }
-  if (typingTimeout) clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => sendTypingSignal(false), 3000);
-});
-
-messageInput.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.repeat) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-/* SIDEBAR RENDERER */
-function renderSidebars() {
-  const newThreadKeys = Array.from(activeThreads).join(",") + ":" + (currentContext.type === 'channel' ? currentContext.id : '');
-  const newDmKeys = Array.from(activeDms).join(",") + ":" + (currentContext.type === 'dm' ? currentContext.id : '');
-
-  if (newThreadKeys !== currentThreadKeys) {
-    currentThreadKeys = newThreadKeys;
-    const threadListEl = document.getElementById("threadList");
-    threadListEl.innerHTML = "";
-    activeThreads.forEach(thread => {
-      const item = document.createElement("div");
-      item.className = "channel-item";
-      if (currentContext.type === 'channel' && currentContext.id === thread) item.classList.add("active");
-      item.innerHTML = `<span class="prefix">#</span><span>${escapeHtml(thread)}</span>`;
-      item.onclick = () => switchContext('channel', thread);
-      threadListEl.appendChild(item);
-    });
-  }
-
-  if (newDmKeys !== currentDmKeys) {
-    currentDmKeys = newDmKeys;
-    const dmListEl = document.getElementById("dmList");
-    dmListEl.innerHTML = "";
-    activeDms.forEach(otherUser => {
-      const item = document.createElement("div");
-      item.className = "channel-item";
-      if (currentContext.type === 'dm' && currentContext.id.toLowerCase() === otherUser.toLowerCase()) item.classList.add("active");
-
-      const profile = userProfiles[otherUser.toLowerCase()] || {};
+      const msgUser = msg.username || "?";
+      const profile = userProfiles[msgUser.toLowerCase()] || {};
       const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+      const initial = msgUser.charAt(0).toUpperCase();
 
-      item.innerHTML = `<div class="dm-user-avatar" style="${avatarStyle}">${profile.avatar_url ? '' : escapeHtml(otherUser.charAt(0).toUpperCase())}</div><span>${escapeHtml(otherUser)}</span>`;
-      item.onclick = () => switchContext('dm', otherUser);
-      dmListEl.appendChild(item);
+      const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
+      const editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
+
+      let replyHtml = "";
+      if (msg.reply_to) {
+        const parentMsg = cachedMessages.find(m => m.id === msg.reply_to);
+        if (parentMsg) {
+          const parentMsgId = getMsgDomId(parentMsg);
+          replyHtml = `
+            <div class="reply-reference" onclick="const pEl = document.getElementById('${parentMsgId}'); if(pEl) pEl.scrollIntoView({behavior: 'smooth', block: 'center'});">
+              <b>@${escapeHtml(parentMsg.username)}</b>: ${escapeHtml(parentMsg.message).substring(0, 40)}
+            </div>
+          `;
+        }
+      }
+
+      div.innerHTML = `
+        <div class="avatar" style="${avatarStyle} ${msg.reply_to ? 'top: 24px;' : ''}" onclick="event.stopPropagation(); window.openProfileCard('${escapeHtml(msgUser)}');">${profile.avatar_url ? '' : escapeHtml(initial)}</div>
+        <div class="message-content">
+          ${replyHtml}
+          <div class="message-header">
+            <b onclick="event.stopPropagation(); window.openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)}</b>
+            <span class="time">${escapeHtml(time)}</span>
+          </div>
+          <span class="text">${formatMessageContent(msg.message)}${editedLabel}</span>
+          <div id="reactions_${msgId}" class="reactions-container"></div>
+        </div>
+      `;
+
+      renderReactions(msgId, msg);
+    });
+
+    renderSidebars();
+    renderTypingIndicator();
+
+    if (wasAtBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  window.openProfileCard = openProfileCard;
+
+  /* SEND MESSAGE */
+  async function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    const target_dm = getCurrentTargetDm();
+
+    messageInput.value = "";
+    const currentReplyId = activeReplyTarget ? activeReplyTarget.id : "";
+    clearReplyState();
+
+    if (typingTimeout) clearTimeout(typingTimeout);
+    sendTypingSignal(false);
+
+    const localId = "pending_" + (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + "_" + Math.random().toString(36).substr(2, 5)));
+
+    const localMsg = {
+      localId, client_id: localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
+    };
+    pendingLocalMessages.push(localMsg);
+    renderMessages(true);
+
+    try {
+      const msgRef = push(ref(db, 'messages'));
+      await set(msgRef, {
+        username: username,
+        message: text,
+        target_dm: target_dm,
+        reply_to: currentReplyId,
+        client_id: localId,
+        created_at: localMsg.created_at
+      });
+      localMsg.id = msgRef.key;
+    } catch (err) {}
+  }
+
+  /* INPUT TYPING EVENTS */
+  messageInput.addEventListener("input", () => {
+    const now = Date.now();
+    if (now - lastTypingSentTime > 2500) {
+      lastTypingSentTime = now;
+      sendTypingSignal(true);
+    }
+    if (typingTimeout) clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => sendTypingSignal(false), 3000);
+  });
+
+  messageInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.repeat) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  /* SIDEBAR RENDERER */
+  function renderSidebars() {
+    const newThreadKeys = Array.from(activeThreads).join(",") + ":" + (currentContext.type === 'channel' ? currentContext.id : '');
+    const newDmKeys = Array.from(activeDms).join(",") + ":" + (currentContext.type === 'dm' ? currentContext.id : '');
+
+    if (newThreadKeys !== currentThreadKeys) {
+      currentThreadKeys = newThreadKeys;
+      const threadListEl = document.getElementById("threadList");
+      threadListEl.innerHTML = "";
+      activeThreads.forEach(thread => {
+        const item = document.createElement("div");
+        item.className = "channel-item";
+        if (currentContext.type === 'channel' && currentContext.id === thread) item.classList.add("active");
+        item.innerHTML = `<span class="prefix">#</span><span>${escapeHtml(thread)}</span>`;
+        item.onclick = () => switchContext('channel', thread);
+        threadListEl.appendChild(item);
+      });
+    }
+
+    if (newDmKeys !== currentDmKeys) {
+      currentDmKeys = newDmKeys;
+      const dmListEl = document.getElementById("dmList");
+      dmListEl.innerHTML = "";
+      activeDms.forEach(otherUser => {
+        const item = document.createElement("div");
+        item.className = "channel-item";
+        if (currentContext.type === 'dm' && currentContext.id.toLowerCase() === otherUser.toLowerCase()) item.classList.add("active");
+
+        const profile = userProfiles[otherUser.toLowerCase()] || {};
+        const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+
+        item.innerHTML = `<div class="dm-user-avatar" style="${avatarStyle}">${profile.avatar_url ? '' : escapeHtml(otherUser.charAt(0).toUpperCase())}</div><span>${escapeHtml(otherUser)}</span>`;
+        item.onclick = () => switchContext('dm', otherUser);
+        dmListEl.appendChild(item);
+      });
+    }
+  }
+
+  function switchContext(type, id) {
+    currentContext = { type, id };
+    if (type === 'channel') {
+      document.getElementById("headerPrefix").textContent = "#";
+      document.getElementById("headerTitle").textContent = id;
+      messageInput.placeholder = `Message #${id}`;
+    } else {
+      document.getElementById("headerPrefix").textContent = "@";
+      document.getElementById("headerTitle").textContent = id;
+      messageInput.placeholder = `Message @${id}`;
+    }
+    
+    clearReplyState();
+    messagesEl.innerHTML = ""; 
+    renderedMessageIds.clear(); 
+    currentThreadKeys = "";
+    currentDmKeys = "";
+    renderMessages(true);
+  }
+
+  function getKnownUsernames() {
+    const users = new Set();
+    cachedMessages.forEach(msg => {
+      if (msg.username) users.add(msg.username);
+    });
+    return Array.from(users).filter(u => u.toLowerCase() !== username.toLowerCase());
+  }
+
+  function populateUserSelectList() {
+    const listEl = document.getElementById("userSelectList");
+    const filter = document.getElementById("newDmUsernameInput").value.trim().toLowerCase();
+    listEl.innerHTML = "";
+
+    const knownUsers = getKnownUsernames().filter(u => u.toLowerCase().includes(filter));
+    if (knownUsers.length === 0) {
+      listEl.innerHTML = `<div style="color: #949ba4; font-size: 13px; padding: 12px; text-align: center;">No users found. You can still enter a username above.</div>`;
+      return;
+    }
+
+    knownUsers.forEach(u => {
+      const item = document.createElement("div");
+      item.className = "user-select-item";
+      item.innerHTML = `<span>${escapeHtml(u)}</span>`;
+      item.onclick = () => startDmWithUser(u);
+      listEl.appendChild(item);
     });
   }
-}
 
-function switchContext(type, id) {
-  currentContext = { type, id };
-  if (type === 'channel') {
-    document.getElementById("headerPrefix").textContent = "#";
-    document.getElementById("headerTitle").textContent = id;
-    messageInput.placeholder = `Message #${id}`;
-  } else {
-    document.getElementById("headerPrefix").textContent = "@";
-    document.getElementById("headerTitle").textContent = id;
-    messageInput.placeholder = `Message @${id}`;
-  }
-  
-  clearReplyState();
-  messagesEl.innerHTML = ""; 
-  renderedMessageIds.clear(); 
-  currentThreadKeys = "";
-  currentDmKeys = "";
-  renderMessages(true);
-}
-
-function getKnownUsernames() {
-  const users = new Set();
-  cachedMessages.forEach(msg => {
-    if (msg.username) users.add(msg.username);
-  });
-  return Array.from(users).filter(u => u.toLowerCase() !== username.toLowerCase());
-}
-
-function populateUserSelectList() {
-  const listEl = document.getElementById("userSelectList");
-  const filter = document.getElementById("newDmUsernameInput").value.trim().toLowerCase();
-  listEl.innerHTML = "";
-
-  const knownUsers = getKnownUsernames().filter(u => u.toLowerCase().includes(filter));
-  if (knownUsers.length === 0) {
-    listEl.innerHTML = `<div style="color: #949ba4; font-size: 13px; padding: 12px; text-align: center;">No users found. You can still enter a username above.</div>`;
-    return;
+  function startDmWithUser(targetUser) {
+    if (targetUser && targetUser.toLowerCase() !== username.toLowerCase()) {
+      activeDms.add(targetUser);
+      switchContext('dm', targetUser);
+      document.getElementById("newDmUsernameInput").value = "";
+      newDmModal.classList.add("hidden");
+    }
   }
 
-  knownUsers.forEach(u => {
-    const item = document.createElement("div");
-    item.className = "user-select-item";
-    item.innerHTML = `<span>${escapeHtml(u)}</span>`;
-    item.onclick = () => startDmWithUser(u);
-    listEl.appendChild(item);
-  });
-}
+  const newDmModal = document.getElementById("newDmModal");
+  const newThreadModal = document.getElementById("newThreadModal");
 
-function startDmWithUser(targetUser) {
-  if (targetUser && targetUser.toLowerCase() !== username.toLowerCase()) {
-    activeDms.add(targetUser);
-    switchContext('dm', targetUser);
+  document.getElementById("openNewDmBtn").onclick = () => {
     document.getElementById("newDmUsernameInput").value = "";
-    newDmModal.classList.add("hidden");
-  }
-}
+    populateUserSelectList();
+    newDmModal.classList.remove("hidden");
+  };
 
-const newDmModal = document.getElementById("newDmModal");
-const newThreadModal = document.getElementById("newThreadModal");
+  document.getElementById("newDmUsernameInput").oninput = () => populateUserSelectList();
+  document.getElementById("openNewThreadBtn").onclick = () => newThreadModal.classList.remove("hidden");
 
-document.getElementById("openNewDmBtn").onclick = () => {
-  document.getElementById("newDmUsernameInput").value = "";
-  populateUserSelectList();
-  newDmModal.classList.remove("hidden");
-};
+  document.getElementById("confirmStartDmBtn").onclick = () => {
+    startDmWithUser(document.getElementById("newDmUsernameInput").value.trim());
+  };
 
-document.getElementById("newDmUsernameInput").oninput = () => populateUserSelectList();
-document.getElementById("openNewThreadBtn").onclick = () => newThreadModal.classList.remove("hidden");
+  document.getElementById("confirmThreadBtn").onclick = () => {
+    let threadName = document.getElementById("newThreadInput").value.trim().toLowerCase().replace(/\s+/g, '-');
+    if (threadName) {
+      activeThreads.add(threadName);
+      switchContext('channel', threadName);
+      document.getElementById("newThreadInput").value = "";
+      newThreadModal.classList.add("hidden");
+    }
+  };
 
-document.getElementById("confirmStartDmBtn").onclick = () => {
-  startDmWithUser(document.getElementById("newDmUsernameInput").value.trim());
-};
-
-document.getElementById("confirmThreadBtn").onclick = () => {
-  let threadName = document.getElementById("newThreadInput").value.trim().toLowerCase().replace(/\s+/g, '-');
-  if (threadName) {
-    activeThreads.add(threadName);
-    switchContext('channel', threadName);
-    document.getElementById("newThreadInput").value = "";
-    newThreadModal.classList.add("hidden");
-  }
-};
-
-window.onclick = (e) => {
-  if (e.target === newDmModal) newDmModal.classList.add("hidden");
-  if (e.target === newThreadModal) newThreadModal.classList.add("hidden");
-};
+  window.onclick = (e) => {
+    if (e.target === newDmModal) newDmModal.classList.add("hidden");
+    if (e.target === newThreadModal) newThreadModal.classList.add("hidden");
+  };
 </script>
 </body>
 </html>
-
