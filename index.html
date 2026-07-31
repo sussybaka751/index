@@ -493,6 +493,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getDatabase, ref, set, get, child, push, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDwbKfr5JE5PYD6cfcHhIEWvxArRxSO4jc",
@@ -507,6 +508,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
+  const storage = getStorage(app);
 
   const EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","😉","😍","😘","😜","🤔","😎","😭","😡","👍","👎","🔥","💀"];
 
@@ -621,14 +623,18 @@
     if (!file) return;
 
     const target_dm = getCurrentTargetDm();
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Data = e.target.result;
-      const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
-      
+    const uniqueFileName = `${Date.now()}_${file.name}`;
+    const fileRef = storageRef(storage, `chat_files/${uniqueFileName}`);
+
+    try {
+      const snapshot = await uploadBytes(fileRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
       const fileMessageText = file.type.startsWith("image/") 
-        ? `[IMAGE:${base64Data}|${file.name}]` 
-        : `[FILE:${base64Data}|${file.name}]`;
+        ? `[IMAGE:${downloadURL}|${file.name}]` 
+        : `[FILE:${downloadURL}|${file.name}]`;
+
+      const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
 
       const localMsg = {
         localId: localId,
@@ -640,28 +646,26 @@
         created_at: new Date().toISOString()
       };
       pendingLocalMessages.push(localMsg);
-      
+
       clearReplyState();
       renderMessages(true);
 
-      try {
-        const msgRef = push(ref(db, 'messages'));
-        await set(msgRef, {
-          username: username,
-          message: fileMessageText,
-          target_dm: target_dm,
-          reply_to: localMsg.reply_to,
-          client_id: localId,
-          created_at: localMsg.created_at
-        });
-        localMsg.id = msgRef.key;
-      } catch (err) {
-        alert("Failed to upload file.");
-      } finally {
-        fileInput.value = "";
-      }
-    };
-    reader.readAsDataURL(file);
+      const msgRef = push(ref(db, 'messages'));
+      await set(msgRef, {
+        username: username,
+        message: fileMessageText,
+        target_dm: target_dm,
+        reply_to: localMsg.reply_to,
+        client_id: localId,
+        created_at: localMsg.created_at
+      });
+      localMsg.id = msgRef.key;
+    } catch (err) {
+      alert("Failed to upload file to storage.");
+      console.error(err);
+    } finally {
+      fileInput.value = "";
+    }
   };
 
   emojisOption.onclick = (e) => {
@@ -848,21 +852,26 @@
   }
 
   /* AVATAR UPLOAD HANDLER */
-  pfpFileInput.onchange = () => {
+  pfpFileInput.onchange = async () => {
     const file = pfpFileInput.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Img = e.target.result;
-      
+    const sanitizeUsername = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const avatarRef = storageRef(storage, `avatars/${sanitizeUsername}_${Date.now()}`);
+
+    try {
+      const snapshot = await uploadBytes(avatarRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
       if (!userProfiles[username.toLowerCase()]) userProfiles[username.toLowerCase()] = {};
-      userProfiles[username.toLowerCase()].avatar_url = base64Img;
+      userProfiles[username.toLowerCase()].avatar_url = downloadURL;
 
       updateMyProfileUI();
-      saveProfileChanges({ avatar_url: base64Img });
-    };
-    reader.readAsDataURL(file);
+      saveProfileChanges({ avatar_url: downloadURL });
+    } catch (err) {
+      alert("Failed to upload profile picture.");
+      console.error(err);
+    }
   };
 
   popoverPronounsInput.onchange = () => {
@@ -1396,3 +1405,4 @@
 </script>
 </body>
 </html>
+
