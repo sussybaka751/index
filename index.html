@@ -127,7 +127,7 @@
   .dm-user-avatar { 
     width: 24px; height: 24px; border-radius: 50%; background: #5865f2; 
     display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; 
-    background-size: cover; background-position: center;
+    background-size: cover; background-position: center; position: relative;
   }
 
   /* Bottom User Profile Panel */
@@ -143,7 +143,16 @@
     display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px;
     background-size: cover; background-position: center;
   }
-  .status-dot { position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; background: #23a55a; border-radius: 50%; border: 2px solid #232428; }
+
+  /* Status Presence Dots */
+  .status-dot { position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; z-index: 2; transition: all 0.2s ease; }
+  .status-dot.online { background: #23a55a; border: 2px solid #232428; }
+  .status-dot.offline { background: #80848e; border: 2px solid #ffffff; box-shadow: 0 0 0 2px #232428; }
+  
+  .status-dot-large { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; border-radius: 50%; z-index: 5; transition: all 0.2s ease; }
+  .status-dot-large.online { background: #23a55a; border: 3px solid #232428; }
+  .status-dot-large.offline { background: #80848e; border: 3px solid #ffffff; box-shadow: 0 0 0 3px #232428; }
+
   .user-names { display: flex; flex-direction: column; overflow: hidden; }
   .user-display-name { font-size: 14px; font-weight: 600; color: #f2f3f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .user-tag { font-size: 12px; color: #949ba4; }
@@ -156,6 +165,15 @@
     font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.2); z-index: 2;
   }
   .header-left { display: flex; align-items: center; font-size: 15px; color: #f2f3f5; gap: 8px; }
+  
+  .header-avatar-container { display: flex; align-items: center; justify-content: center; }
+  .header-avatar { 
+    width: 24px; height: 24px; border-radius: 50%; background: #5865f2; 
+    display: flex; align-items: center; justify-content: center; color: white; 
+    font-size: 11px; font-weight: 600; background-size: cover; background-position: center; 
+    cursor: pointer; position: relative; transition: opacity 0.15s;
+  }
+  .header-avatar:hover { opacity: 0.8; }
 
   /* MESSAGES CONTAINER */
   #messages { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 4px; scroll-behavior: smooth; }
@@ -278,12 +296,12 @@
     width: 72px; height: 72px; border-radius: 50%; background: #383a40; 
     border: 6px solid #232428; position: absolute; left: 16px; top: 20px; 
     display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: white;
-    background-size: cover; background-position: center; cursor: pointer; overflow: hidden;
+    background-size: cover; background-position: center; cursor: pointer; overflow: visible;
   }
   .profile-avatar-overlay {
     position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.4); 
     display: flex; align-items: center; justify-content: center; font-size: 11px; text-transform: uppercase;
-    font-weight: bold; color: white; opacity: 0; transition: opacity 0.15s; text-align: center;
+    font-weight: bold; color: white; opacity: 0; transition: opacity 0.15s; text-align: center; border-radius: 50%;
   }
   .profile-avatar-large:hover .profile-avatar-overlay { opacity: 1; }
   
@@ -398,7 +416,7 @@
       <div class="user-info-wrapper">
         <div class="user-avatar-container">
           <div class="user-profile-avatar" id="myAvatarInitial">?</div>
-          <div class="status-dot"></div>
+          <div id="myStatusDot" class="status-dot online"></div>
         </div>
         <div class="user-names">
           <div class="user-display-name" id="myDisplayUsername">User</div>
@@ -412,6 +430,9 @@
   <div id="chat">
     <div class="chat-header">
       <div class="header-left">
+        <div id="headerAvatarContainer" class="header-avatar-container hidden">
+          <div id="headerAvatar" class="header-avatar"></div>
+        </div>
         <span class="prefix" id="headerPrefix">#</span>
         <span id="headerTitle">general-chat</span>
       </div>
@@ -458,6 +479,7 @@
     <div class="profile-avatar-large" id="popoverAvatar">
       <span id="popoverAvatarInitial">?</span>
       <div class="profile-avatar-overlay hidden" id="popoverAvatarOverlay">Change<br>Avatar</div>
+      <div id="popoverStatusDot" class="status-dot-large offline"></div>
     </div>
   </div>
   <div class="profile-body">
@@ -508,8 +530,9 @@
 </div>
 
 <script type="module">
+  // Added onDisconnect to monitor live connections
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, set, get, child, push, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, set, get, child, push, update, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
   const firebaseConfig = {
@@ -542,6 +565,7 @@
   let messageReactions = {}; 
   let userMessageReactions = {}; 
   let userProfiles = {}; 
+  let userStatuses = {}; // Real-time presence storage
 
   let currentThreadKeys = "";
   let currentDmKeys = "";
@@ -762,6 +786,10 @@
       return;
     }
 
+    // Set online presence immediately upon login
+    const myStatusRef = ref(db, `status/${sanitizeUsername}`);
+    set(myStatusRef, "online");
+
     document.getElementById("myDisplayUsername").textContent = username;
     document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
 
@@ -772,7 +800,51 @@
     initFirebaseListeners();
   };
 
+  function getUserStatus(targetUser) {
+    if (!targetUser) return 'offline';
+    const sanitized = targetUser.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    return userStatuses[sanitized] || 'offline';
+  }
+
+  function updateAllPresences() {
+    // 1. My Profile Panel
+    const myStatus = getUserStatus(username);
+    const myDot = document.getElementById("myStatusDot");
+    if (myDot) myDot.className = `status-dot ${myStatus}`;
+
+    // 2. Profile Popover
+    if (activeProfileUser) {
+      const popDot = document.getElementById("popoverStatusDot");
+      if (popDot) popDot.className = `status-dot-large ${getUserStatus(activeProfileUser)}`;
+    }
+
+    // 3. Re-render Sidebar DMs to apply status icons
+    renderSidebars(true);
+
+    // 4. Header Avatar Status
+    updateHeaderAvatar();
+  }
+
   function initFirebaseListeners() {
+    // Listen for connection drops to handle HTML compile exits and refreshes
+    const connectedRef = ref(db, '.info/connected');
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true && username) {
+        const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+        const myStatusRef = ref(db, `status/${mySanitized}`);
+        // Tells Firebase: when my connection dies, instantly set this node to offline
+        onDisconnect(myStatusRef).set("offline").then(() => {
+          set(myStatusRef, "online");
+        });
+      }
+    });
+
+    // Global listener for everyone's status
+    onValue(ref(db, 'status'), (snap) => {
+      userStatuses = snap.val() || {};
+      updateAllPresences();
+    });
+
     onValue(ref(db, 'messages'), (snapshot) => {
       const data = snapshot.val();
       const loadedMessages = [];
@@ -795,6 +867,7 @@
           }
         });
         updateMyProfileUI();
+        updateHeaderAvatar();
       }
     });
 
@@ -811,20 +884,21 @@
   };
 
   function openProfileCard(targetUser) {
+    if (!targetUser) return;
     activeProfileUser = targetUser;
     const isMe = targetUser.toLowerCase() === username.toLowerCase();
     const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser, pronouns: "", bio: "", avatar_url: "", created_at: "" };
+    const status = getUserStatus(targetUser);
 
     popoverUsername.textContent = profile.username || targetUser;
+
+    const popDot = document.getElementById("popoverStatusDot");
+    popDot.className = `status-dot-large ${status}`;
 
     if (profile.created_at) {
       const dateObj = new Date(profile.created_at);
       if (!isNaN(dateObj)) {
-        const formattedDate = dateObj.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric"
-        });
+        const formattedDate = dateObj.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
         popoverCreatedDate.textContent = `Member Since: ${formattedDate}`;
       } else {
         popoverCreatedDate.textContent = "Member Since: --";
@@ -929,7 +1003,6 @@
       myAvatarEl.style.backgroundImage = "none";
       myAvatarEl.textContent = username.charAt(0).toUpperCase();
     }
-
     document.getElementById("myDisplayPronouns").textContent = myProfile.pronouns || "Online";
   }
 
@@ -1096,9 +1169,7 @@
     const roomKey = getCurrentTargetDm().replace(/[.#$/\[\]]/g, "_");
     const typingUsersInRoom = serverTypingMap[roomKey] || {};
     
-    // Fixed: properly sanitize the local username to match the Firebase key format[cite: 6]
     const mySanitizedKey = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    
     const otherTypingUsers = Object.keys(typingUsersInRoom).filter(u => u !== mySanitizedKey && typingUsersInRoom[u]);
 
     if (otherTypingUsers.length === 0) {
@@ -1145,7 +1216,6 @@
 
       if (msg.id && !msg.id.startsWith("pending_")) {
         const msgId = getMsgDomId(msg);
-
         const serverReactions = {};
         const serverUserReactions = {};
 
@@ -1158,7 +1228,6 @@
             }
           });
         }
-
         messageReactions[msgId] = serverReactions;
         userMessageReactions[msgId] = serverUserReactions;
       }
@@ -1182,7 +1251,6 @@
       if (!matchesContext(msg)) return;
 
       const msgId = getMsgDomId(msg);
-
       let div = document.getElementById(msgId);
       
       if (!div) {
@@ -1244,7 +1312,7 @@
 
   window.openProfileCard = openProfileCard;
 
-  /* SEND MESSAGE - 0ms instant front-end update */
+  /* SEND MESSAGE */
   async function sendMessage() {
     const text = messageInput.value.trim();
     if (!text) return;
@@ -1264,7 +1332,6 @@
       localId, client_id: localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
     };
     
-    // Pushes local message and immediately forces a render and scroll for 0ms lag[cite: 6]
     pendingLocalMessages.push(localMsg);
     renderMessages(true);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -1301,12 +1368,27 @@
     }
   });
 
+  function updateHeaderAvatar() {
+    if (currentContext.type !== 'dm') return;
+    const targetUser = currentContext.id;
+    const headerAvatar = document.getElementById("headerAvatar");
+    const profile = userProfiles[targetUser.toLowerCase()] || {};
+    const status = getUserStatus(targetUser);
+
+    let initial = profile.avatar_url ? '' : escapeHtml(targetUser.charAt(0).toUpperCase());
+    let bgStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+
+    headerAvatar.style = bgStyle;
+    headerAvatar.innerHTML = `${initial}<div class="status-dot ${status}"></div>`;
+    headerAvatar.onclick = () => openProfileCard(targetUser);
+  }
+
   /* SIDEBAR RENDERER */
-  function renderSidebars() {
+  function renderSidebars(force = false) {
     const newThreadKeys = Array.from(activeThreads).join(",") + ":" + (currentContext.type === 'channel' ? currentContext.id : '');
     const newDmKeys = Array.from(activeDms).join(",") + ":" + (currentContext.type === 'dm' ? currentContext.id : '');
 
-    if (newThreadKeys !== currentThreadKeys) {
+    if (newThreadKeys !== currentThreadKeys || force) {
       currentThreadKeys = newThreadKeys;
       const threadListEl = document.getElementById("threadList");
       threadListEl.innerHTML = "";
@@ -1320,7 +1402,7 @@
       });
     }
 
-    if (newDmKeys !== currentDmKeys) {
+    if (newDmKeys !== currentDmKeys || force) {
       currentDmKeys = newDmKeys;
       const dmListEl = document.getElementById("dmList");
       dmListEl.innerHTML = "";
@@ -1331,8 +1413,14 @@
 
         const profile = userProfiles[otherUser.toLowerCase()] || {};
         const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+        const status = getUserStatus(otherUser);
 
-        item.innerHTML = `<div class="dm-user-avatar" style="${avatarStyle}">${profile.avatar_url ? '' : escapeHtml(otherUser.charAt(0).toUpperCase())}</div><span>${escapeHtml(otherUser)}</span>`;
+        item.innerHTML = `
+          <div class="dm-user-avatar" style="${avatarStyle}">
+            ${profile.avatar_url ? '' : escapeHtml(otherUser.charAt(0).toUpperCase())}
+            <div class="status-dot ${status}"></div>
+          </div>
+          <span>${escapeHtml(otherUser)}</span>`;
         item.onclick = () => switchContext('dm', otherUser);
         dmListEl.appendChild(item);
       });
@@ -1341,14 +1429,19 @@
 
   function switchContext(type, id) {
     currentContext = { type, id };
+    const headerAvatarContainer = document.getElementById("headerAvatarContainer");
+
     if (type === 'channel') {
       document.getElementById("headerPrefix").textContent = "#";
       document.getElementById("headerTitle").textContent = id;
       messageInput.placeholder = `Message #${id}`;
+      headerAvatarContainer.classList.add("hidden");
     } else {
       document.getElementById("headerPrefix").textContent = "@";
       document.getElementById("headerTitle").textContent = id;
       messageInput.placeholder = `Message @${id}`;
+      headerAvatarContainer.classList.remove("hidden");
+      updateHeaderAvatar();
     }
     
     clearReplyState();
@@ -1381,7 +1474,18 @@
     knownUsers.forEach(u => {
       const item = document.createElement("div");
       item.className = "user-select-item";
-      item.innerHTML = `<span>${escapeHtml(u)}</span>`;
+      
+      const profile = userProfiles[u.toLowerCase()] || {};
+      const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+      const initial = profile.avatar_url ? '' : escapeHtml(u.charAt(0).toUpperCase());
+      const status = getUserStatus(u);
+
+      item.innerHTML = `
+        <div class="dm-user-avatar" style="${avatarStyle}">
+          ${initial}
+          <div class="status-dot ${status}"></div>
+        </div>
+        <span>${escapeHtml(u)}</span>`;
       item.onclick = () => startDmWithUser(u);
       listEl.appendChild(item);
     });
@@ -1429,4 +1533,3 @@
 </script>
 </body>
 </html>
-
