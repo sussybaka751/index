@@ -8,7 +8,7 @@ function doPost(e) {
 
 function handleRequest(e, method) {
   const lock = LockService.getScriptLock();
-  lock.tryLock(10000);
+  lock.tryLock(5000);
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
