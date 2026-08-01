@@ -481,6 +481,7 @@
   <button id="roleRemove" class="menu-option" style="color:#f23f43;">Remove from Server</button>
 </div>
 <div id="serverContextMenu" class="msg-context-menu hidden"><button id="btnDeleteServerCtx" class="menu-option" style="color:#f23f43;">Delete Server</button></div>
+<div id="groupContextMenu" class="msg-context-menu hidden"><button id="btnDeleteGroupCtx" class="menu-option" style="color:#f23f43;">Delete Group</button></div>
 
 <!-- MODALS -->
 <div id="createServerModal" class="modal-overlay hidden">
@@ -515,6 +516,10 @@
   <div class="modal-box animate-pop">
     <h3>Group Members</h3>
     <div id="groupMembersDetailList" class="user-select-list"></div>
+    <div id="groupAddPersonSection" class="hidden" style="margin-top:12px; padding-top:12px; border-top:1px solid #1f2023;">
+        <input type="text" id="groupAddUserInput" placeholder="Username to add..." style="width:calc(100% - 80px); display:inline-block; padding: 10px; border-radius: 4px; border: 1px solid #1f2023; background: #1e1f22; color: #dbdee1; outline: none;">
+        <button id="groupAddUserBtn" style="padding:10px 16px; background:#5865f2; color:white; border:none; border-radius:4px; cursor:pointer; font-weight: 600;">Add</button>
+    </div>
     <div class="modal-actions" style="justify-content: flex-end;"><button onclick="document.getElementById('groupDetailsModal').classList.add('hidden')">Close</button></div>
   </div>
 </div>
@@ -585,6 +590,7 @@
   let activeProfileUser = null;
   let activeTargetMemberUser = null;
   let targetContextServerId = null;
+  let targetContextGroupId = null;
 
   let tempServerIconBase64 = "";
   let selectedGroupUsers = new Set();
@@ -640,6 +646,7 @@
   const memberListContent = document.getElementById("memberListContent");
   const memberRoleMenu = document.getElementById("memberRoleMenu");
   const serverContextMenu = document.getElementById("serverContextMenu");
+  const groupContextMenu = document.getElementById("groupContextMenu");
 
   // Inbox & Dev Features
   const inboxBtn = document.getElementById("inboxBtn");
@@ -705,7 +712,6 @@
       const ch = server && server.channels ? server.channels[currentContext.id] : null;
       if (ch && ch.isEditorOnly) {
         const myRole = getUserServerRole(currentServerId, username);
-        // Special Dev bypass for file uploads in restricted channels
         if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
           alert("Only Editors and Creators can upload files to this channel.");
           fileInput.value = "";
@@ -803,7 +809,7 @@
   document.getElementById("sidebarHeaderBtn").onclick = (e) => {
     if (currentView === 'server' && currentServerId) {
       const myRole = getUserServerRole(currentServerId, username);
-      if (myRole === 'creator') {
+      if (myRole === 'creator' || isDev(username)) {
         targetContextServerId = currentServerId;
         serverContextMenu.classList.remove("hidden");
         serverContextMenu.style.left = `${e.clientX}px`;
@@ -825,6 +831,21 @@
     }
   };
 
+  document.getElementById("btnDeleteGroupCtx").onclick = async () => {
+    groupContextMenu.classList.add("hidden");
+    if (!targetContextGroupId) return;
+    if (confirm("Are you sure you want to delete this group? This action cannot be undone.")) {
+      try {
+        await remove(ref(db, `groups/${targetContextGroupId}`));
+        if (currentContext.type === 'group' && currentContext.id === targetContextGroupId) {
+          switchToHomeView();
+        }
+      } catch (err) {
+        alert("Failed to delete group.");
+      }
+    }
+  };
+
   document.getElementById("headerTitleClickArea").onclick = () => {
     if (currentContext.type === 'group') {
       openGroupDetailsModal(currentContext.id);
@@ -838,6 +859,7 @@
     profilePopover.classList.add("hidden");
     memberRoleMenu.classList.add("hidden");
     serverContextMenu.classList.add("hidden");
+    groupContextMenu.classList.add("hidden");
     inboxPopup.classList.add("hidden");
   });
 
@@ -916,6 +938,20 @@
     if (myDot) myDot.className = `status-dot ${myStatus}`;
     renderSidebarChannels();
     renderMemberList();
+  }
+
+  function updateMyProfileUI() {
+    if (!username) return;
+    const profile = userProfiles[username.toLowerCase()] || {};
+    const avatarEl = document.getElementById("myAvatarInitial");
+    if (profile.avatar_url) {
+      avatarEl.style.backgroundImage = `url('${profile.avatar_url}')`;
+      avatarEl.style.backgroundSize = "cover";
+      avatarEl.textContent = "";
+    } else {
+      avatarEl.style.backgroundImage = "none";
+      avatarEl.textContent = username.charAt(0).toUpperCase();
+    }
   }
 
   /* FIREBASE LISTENERS */
@@ -1029,7 +1065,7 @@
     document.getElementById("serverNameLabel").textContent = server.name || "Server";
 
     const myRole = getUserServerRole(serverId, username);
-    if (myRole === 'creator' || myRole === 'co-creator' || myRole === 'editor') {
+    if (myRole === 'creator' || myRole === 'co-creator' || myRole === 'editor' || isDev(username)) {
       document.getElementById("addPersonTopBtn").classList.remove("hidden");
     } else {
       document.getElementById("addPersonTopBtn").classList.add("hidden");
@@ -1096,13 +1132,25 @@
       const groupListDiv = document.createElement("div");
       Object.entries(activeGroups).forEach(([gId, group]) => {
         const members = group.members || [];
-        // Dev Omniscient Override for viewing Groups
         if (members.includes(username) || isDev(username)) {
           const formattedTitle = formatGroupName(members);
           const item = document.createElement("div");
           item.className = `channel-item ${currentContext.type === 'group' && currentContext.id === gId ? 'active' : ''}`;
           item.innerHTML = `<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(formattedTitle)}</span>`;
           item.onclick = () => switchContext('group', gId);
+
+          if (isDev(username)) {
+            item.oncontextmenu = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              targetContextGroupId = gId;
+              const gMenu = document.getElementById("groupContextMenu");
+              gMenu.classList.remove("hidden");
+              gMenu.style.left = `${e.clientX}px`;
+              gMenu.style.top = `${e.clientY}px`;
+            };
+          }
+
           groupListDiv.appendChild(item);
         }
       });
@@ -1125,7 +1173,7 @@
       if (!server) return;
 
       const myRole = getUserServerRole(currentServerId, username);
-      const canManageChannels = myRole === 'creator' || myRole === 'co-creator';
+      const canManageChannels = myRole === 'creator' || myRole === 'co-creator' || isDev(username);
 
       const channelHeader = document.createElement("div");
       channelHeader.className = "sidebar-section";
@@ -1167,7 +1215,6 @@
 
     Object.entries(activeServers).forEach(([sId, server]) => {
       const myRole = getUserServerRole(sId, username);
-      // Dev Omniscient Override for Server Viewer
       if (!myRole && !isDev(username)) return;
 
       const iconDiv = document.createElement("div");
@@ -1185,7 +1232,7 @@
 
       iconDiv.onclick = () => switchToServerView(sId);
       
-      if (myRole === 'creator') {
+      if (myRole === 'creator' || isDev(username)) {
         iconDiv.oncontextmenu = (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -1220,7 +1267,6 @@
 
       if (ch && ch.isEditorOnly) {
         const myRole = getUserServerRole(currentServerId, username);
-        // Special Dev bypass logic for typing in editor channels
         if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
           messageInput.disabled = true;
           messageInput.placeholder = "Only Editors and Creators can type in this channel";
@@ -1470,7 +1516,11 @@
       renderMemberGroup("Members — " + members.length, members, 'member');
 
     } else {
-      const allUsers = Object.keys(userProfiles);
+      const allUsers = Object.keys(userProfiles).filter(u => {
+        // Devs are invisible in generic lists unless specifically interacting
+        if (isDev(u) && u.toLowerCase() !== username.toLowerCase()) return false;
+        return true;
+      });
       renderMemberGroup("Direct Chat Members", allUsers, 'member');
     }
   }
@@ -1511,7 +1561,7 @@
       item.onclick = (e) => {
         e.stopPropagation();
         const myRole = getUserServerRole(currentServerId, username);
-        if (currentView === 'server' && (myRole === 'creator' || myRole === 'co-creator') && uName.toLowerCase() !== username.toLowerCase()) {
+        if (currentView === 'server' && (myRole === 'creator' || myRole === 'co-creator' || isDev(username)) && uName.toLowerCase() !== username.toLowerCase()) {
           activeTargetMemberUser = uName;
           openMemberRoleMenu(e.clientX, e.clientY);
         } else {
@@ -1630,7 +1680,7 @@
     if (!currentServerId) return;
 
     const myRole = getUserServerRole(currentServerId, username);
-    if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor') {
+    if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
       return alert("Only Creators, Co-Creators, and Editors can add people to this server!");
     }
 
@@ -1691,11 +1741,14 @@
   function openGroupDetailsModal(groupId) {
     const group = activeGroups[groupId];
     if (!group) return;
+    const members = group.members || [];
+    const isCreator = members[0]?.toLowerCase() === username.toLowerCase();
+    const canManage = isCreator || isDev(username);
 
     const listEl = document.getElementById("groupMembersDetailList");
     listEl.innerHTML = "";
 
-    (group.members || []).forEach(mUser => {
+    members.forEach(mUser => {
       const profile = userProfiles[mUser.toLowerCase()] || {};
       const status = getUserStatus(mUser);
 
@@ -1705,22 +1758,56 @@
       const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
       const initial = profile.avatar_url ? '' : escapeHtml(mUser.charAt(0).toUpperCase());
 
+      let removeBtnHtml = "";
+      if (canManage && mUser.toLowerCase() !== username.toLowerCase()) {
+         removeBtnHtml = `<button class="remove-btn" style="background:transparent; color:#f23f43; border:none; cursor:pointer; font-size:12px; padding: 4px;">Remove</button>`;
+      }
+
       item.innerHTML = `
         <div class="dm-user-avatar" style="${avatarStyle}">
           ${initial}
           <div class="status-dot ${status}"></div>
         </div>
         <span style="flex:1;">${escapeHtml(mUser)} ${getDevBadgeHTML(mUser)}</span>
-        <span style="font-size:12px; color:#949ba4;">${status}</span>
+        <span style="font-size:12px; color:#949ba4; margin-right: 8px;">${status}</span>
+        ${removeBtnHtml}
       `;
 
-      item.onclick = () => {
-        document.getElementById("groupDetailsModal").classList.add("hidden");
-        openProfileCard(mUser);
-      };
+      if (canManage && mUser.toLowerCase() !== username.toLowerCase()) {
+        item.querySelector('.remove-btn').onclick = async (e) => {
+          e.stopPropagation();
+          if (confirm(`Remove ${mUser} from group?`)) {
+            const newMembers = members.filter(m => m.toLowerCase() !== mUser.toLowerCase());
+            await update(ref(db, `groups/${groupId}`), { members: newMembers });
+            openGroupDetailsModal(groupId); // Refresh view
+          }
+        };
+      } else {
+        item.onclick = () => {
+          document.getElementById("groupDetailsModal").classList.add("hidden");
+          openProfileCard(mUser);
+        };
+      }
 
       listEl.appendChild(item);
     });
+
+    const addSection = document.getElementById("groupAddPersonSection");
+    if (canManage) {
+      addSection.classList.remove("hidden");
+      document.getElementById("groupAddUserBtn").onclick = async () => {
+        const newUser = document.getElementById("groupAddUserInput").value.trim();
+        if (!newUser) return;
+        if (members.map(m => m.toLowerCase()).includes(newUser.toLowerCase())) return alert("User is already in the group.");
+        
+        const newMembers = [...members, newUser];
+        await update(ref(db, `groups/${groupId}`), { members: newMembers });
+        document.getElementById("groupAddUserInput").value = "";
+        openGroupDetailsModal(groupId); // Refresh view
+      };
+    } else {
+      addSection.classList.add("hidden");
+    }
 
     document.getElementById("groupDetailsModal").classList.remove("hidden");
   }
@@ -1807,238 +1894,270 @@
     if (newText !== null && newText.trim() !== "" && newText !== currentText) {
       try {
         await update(ref(db, `messages/${activeContextMsg.id}`), {
-          message: newText.trim(),
+          message: newText,
           is_edited: true
         });
-      } catch (err) {}
+      } catch (err) {
+        alert("Failed to edit message.");
+      }
     }
   };
 
   ctxReact.onclick = (e) => {
     e.stopPropagation();
-    reactEmojiBar.classList.toggle("hidden");
+    reactEmojiBar.classList.remove("hidden");
   };
 
-  /* FIXED REACTION SYSTEM */
   async function toggleReaction(msg, emoji) {
-    if (!msg) return;
-    const realId = msg.id && !msg.id.startsWith("pending_") ? msg.id : null;
-    if (!realId) {
-      alert("Please wait for the message to finish sending before reacting.");
-      return;
-    }
-
-    const safeUserKey = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    let reactions = msg.reactions || {};
-    let usersObj = reactions[emoji] || {};
-    
-    if (Array.isArray(usersObj)) {
-      const map = {};
-      usersObj.forEach(u => { 
-        const key = String(u).toLowerCase().replace(/[.#$/\[\]]/g, "_");
-        map[key] = u; 
-      });
-      usersObj = map;
-    }
-
-    if (usersObj[safeUserKey]) {
-      delete usersObj[safeUserKey];
-    } else {
-      usersObj[safeUserKey] = username;
-    }
-
-    const updatedEmojiData = Object.keys(usersObj).length > 0 ? usersObj : null;
-
+    if (!msg || !msg.id || msg.id.startsWith("pending_")) return;
+    const msgRef = ref(db, `messages/${msg.id}/reactions/${emoji}`);
     try {
-      await set(ref(db, `messages/${realId}/reactions/${emoji}`), updatedEmojiData);
+      const snap = await get(msgRef);
+      let users = [];
+      if (snap.exists()) {
+        const val = snap.val();
+        if (Array.isArray(val)) users = val;
+        else if (typeof val === 'object') {
+          users = Object.values(val).map(u => typeof u === 'string' ? u : (u.username || ''));
+        }
+      }
+      
+      const myLower = username.toLowerCase();
+      const existingIdx = users.findIndex(u => u.toLowerCase() === myLower);
+      
+      if (existingIdx !== -1) {
+        users.splice(existingIdx, 1);
+      } else {
+        users.push(username);
+      }
+
+      if (users.length === 0) {
+        await remove(msgRef);
+      } else {
+        await set(msgRef, users);
+      }
     } catch (err) {
-      console.error("Failed to update reaction", err);
+      alert("Failed to react.");
     }
   }
 
-  function renderReactions(msgId, msg) {
-    const reactionsDiv = document.getElementById(`reactions_${msgId}`);
-    if (!reactionsDiv) return;
+  function renderReactions(msgDomId, msg) {
+    const container = document.getElementById(`reactions_${msgDomId}`);
+    if (!container) return;
+    container.innerHTML = "";
+    
+    const reacts = messageReactions[msgDomId] || {};
+    const userReacts = userMessageReactions[msgDomId] || {};
 
-    reactionsDiv.innerHTML = "";
-    if (!messageReactions[msgId]) return;
-
-    Object.entries(messageReactions[msgId]).forEach(([emoji, count]) => {
-      if (count <= 0) return;
-      const badge = document.createElement("span");
-      const isReactedByMe = userMessageReactions[msgId] && userMessageReactions[msgId][emoji];
-      badge.className = `reaction-badge ${isReactedByMe ? 'reacted' : ''}`;
-      badge.innerHTML = `${emoji} <span>${count}</span>`;
-      badge.onclick = (e) => {
-        e.stopPropagation();
-        toggleReaction(msg, emoji);
-      };
-      reactionsDiv.appendChild(badge);
+    Object.entries(reacts).forEach(([emoji, count]) => {
+      if (count > 0) {
+        const badge = document.createElement("span");
+        badge.className = `reaction-badge ${userReacts[emoji] ? 'reacted' : ''}`;
+        badge.innerHTML = `${emoji} <span style="font-size:11px; font-weight:600;">${count}</span>`;
+        badge.onclick = (e) => {
+          e.stopPropagation();
+          toggleReaction(msg, emoji);
+        };
+        container.appendChild(badge);
+      }
     });
   }
 
-  function updateHeaderAvatar() {
-    if (currentContext.type !== 'dm') return;
-    const targetUser = currentContext.id;
-    const headerAvatar = document.getElementById("headerAvatar");
+  /* PROFILE CARD */
+  function openProfileCard(targetUser) {
+    activeProfileUser = targetUser;
     const profile = userProfiles[targetUser.toLowerCase()] || {};
     const status = getUserStatus(targetUser);
 
-    let initial = profile.avatar_url ? '' : escapeHtml(targetUser.charAt(0).toUpperCase());
-    let bgStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
-
-    headerAvatar.style = bgStyle;
-    headerAvatar.innerHTML = `${initial}<div class="status-dot ${status}"></div>`;
-    headerAvatar.onclick = (e) => { e.stopPropagation(); openProfileCard(targetUser); };
-  }
-
-  /* PROFILE CARD POPOVER */
-  function openProfileCard(targetUser) {
-    if (!targetUser) return;
-    activeProfileUser = targetUser;
-    const isMe = targetUser.toLowerCase() === username.toLowerCase();
-    const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser };
-    const status = getUserStatus(targetUser);
-
-    popoverUsername.innerHTML = `${escapeHtml(profile.username || targetUser)} ${getDevBadgeHTML(targetUser)}`;
-    document.getElementById("popoverStatusDot").className = `status-dot-large ${status}`;
-
-    if (profile.created_at) {
-      const dateObj = new Date(profile.created_at);
-      popoverCreatedDate.textContent = `Member Since: ${dateObj.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`;
-    } else {
-      popoverCreatedDate.textContent = "Member Since: --";
-    }
-
     if (profile.avatar_url) {
-      popoverAvatar.style.backgroundImage = `url("${profile.avatar_url}")`;
+      popoverAvatar.style.backgroundImage = `url('${profile.avatar_url}')`;
       popoverAvatarInitial.textContent = "";
     } else {
       popoverAvatar.style.backgroundImage = "none";
-      popoverAvatarInitial.textContent = (profile.username || targetUser).charAt(0).toUpperCase();
+      popoverAvatarInitial.textContent = targetUser.charAt(0).toUpperCase();
     }
 
-    if (isMe) {
+    popoverStatusDot.className = `status-dot-large ${status}`;
+    popoverUsername.innerHTML = `${escapeHtml(targetUser)} ${getDevBadgeHTML(targetUser)}`;
+    
+    const createdStr = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "Unknown";
+    popoverCreatedDate.textContent = `Member Since: ${createdStr}`;
+
+    if (targetUser.toLowerCase() === username.toLowerCase()) {
       popoverAvatarOverlay.classList.remove("hidden");
-      popoverAvatar.onclick = () => pfpFileInput.click();
+      popoverAvatar.onclick = () => document.getElementById("pfpFileInput").click();
+      
+      popoverPronounsInput.disabled = false;
       popoverPronounsInput.value = profile.pronouns || "";
-      popoverPronounsInput.readOnly = false;
-      popoverBioInput.value = profile.bio || "";
+      
       popoverBioInput.classList.remove("hidden");
       popoverBioReadonly.classList.add("hidden");
+      popoverBioInput.value = profile.bio || "";
     } else {
       popoverAvatarOverlay.classList.add("hidden");
       popoverAvatar.onclick = null;
+      
+      popoverPronounsInput.disabled = true;
       popoverPronounsInput.value = profile.pronouns || "";
-      popoverPronounsInput.readOnly = true;
-      popoverBioReadonly.textContent = profile.bio || "No bio provided.";
-      popoverBioReadonly.classList.remove("hidden");
+      
       popoverBioInput.classList.add("hidden");
+      popoverBioReadonly.classList.remove("hidden");
+      popoverBioReadonly.textContent = profile.bio || "No bio available.";
     }
 
     profilePopover.classList.remove("hidden");
   }
 
-  window.openProfileCard = openProfileCard;
-
-  pfpFileInput.onchange = () => {
-    const file = pfpFileInput.files[0];
+  document.getElementById("pfpFileInput").onchange = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Data = e.target.result;
-      if (!userProfiles[username.toLowerCase()]) userProfiles[username.toLowerCase()] = {};
-      userProfiles[username.toLowerCase()].avatar_url = base64Data;
-      updateMyProfileUI();
-      saveProfileChanges({ avatar_url: base64Data });
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result;
+      const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      try {
+        await update(ref(db, `users/${sanitized}`), { avatar_url: base64 });
+        openProfileCard(username);
+      } catch (err) { alert("Failed to update avatar"); }
     };
     reader.readAsDataURL(file);
   };
 
-  popoverPronounsInput.onchange = () => {
+  popoverPronounsInput.addEventListener("change", async (e) => {
     if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
-      const val = popoverPronounsInput.value.trim();
-      userProfiles[username.toLowerCase()].pronouns = val;
-      updateMyProfileUI();
-      saveProfileChanges({ pronouns: val });
-    }
-  };
-
-  popoverBioInput.onchange = () => {
-    if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
-      const val = popoverBioInput.value.trim();
-      userProfiles[username.toLowerCase()].bio = val;
-      saveProfileChanges({ bio: val });
-    }
-  };
-
-  function updateMyProfileUI() {
-    const profile = userProfiles[username.toLowerCase()] || {};
-    document.getElementById("myDisplayUsername").innerHTML = `${escapeHtml(username)} ${getDevBadgeHTML(username)}`;
-    document.getElementById("myDisplayPronouns").textContent = profile.pronouns || "Online";
-
-    if (profile.avatar_url) {
-      document.getElementById("myAvatarInitial").textContent = "";
-      document.getElementById("myAvatarInitial").parentElement.style.backgroundImage = `url("${profile.avatar_url}")`;
-    } else {
-      document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
-      document.getElementById("myAvatarInitial").parentElement.style.backgroundImage = "none";
-    }
-    renderSidebarChannels();
-  }
-
-  async function saveProfileChanges(changes) {
-    const sanitizeUsername = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    try {
-      await update(ref(db, `users/${sanitizeUsername}`), changes);
-    } catch (err) {
-      alert("Failed to save profile changes.");
-    }
-  }
-
-  /* TYPING INDICATORS */
-  messageInput.addEventListener("input", () => {
-    const now = Date.now();
-    if (now - lastTypingSentTime > 3000) {
-      sendTypingSignal(true);
-      lastTypingSentTime = now;
-      if (typingTimeout) clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => sendTypingSignal(false), 5000);
+      const val = e.target.value.trim();
+      const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      await update(ref(db, `users/${sanitized}`), { pronouns: val });
     }
   });
 
-  async function sendTypingSignal(isTyping) {
+  popoverBioInput.addEventListener("change", async (e) => {
+    if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
+      const val = e.target.value.trim();
+      const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      await update(ref(db, `users/${sanitized}`), { bio: val });
+    }
+  });
+
+  /* TYPING INDICATOR */
+  function sendTypingSignal(isTyping) {
     if (!username) return;
-    const target = getCurrentTargetDm();
-    const sanitizeUser = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    const tRef = ref(db, `typing/${target}/${sanitizeUser}`);
-    try {
-      if (isTyping) await set(tRef, username);
-      else await remove(tRef);
-    } catch (err) {}
+    const targetDm = getCurrentTargetDm();
+    const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    set(ref(db, `typing/${targetDm}/${mySanitized}`), isTyping ? Date.now() : null);
   }
 
+  messageInput.addEventListener("input", () => {
+    if (Date.now() - lastTypingSentTime > 2000) {
+      sendTypingSignal(true);
+      lastTypingSentTime = Date.now();
+    }
+    if (typingTimeout) clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => sendTypingSignal(false), 3000);
+  });
+
   function renderTypingIndicator() {
-    const target = getCurrentTargetDm();
-    const typingUsers = serverTypingMap[target] || {};
+    const targetDm = getCurrentTargetDm();
+    const typingUsersObj = serverTypingMap[targetDm] || {};
     
-    let typists = [];
-    Object.entries(typingUsers).forEach(([sUser, rawUser]) => {
-      if (sUser !== username.toLowerCase().replace(/[.#$/\[\]]/g, "_")) typists.push(rawUser);
-    });
+    const typingUsers = Object.keys(typingUsersObj)
+      .filter(u => u !== username.toLowerCase().replace(/[.#$/\[\]]/g, "_") && typingUsersObj[u] > Date.now() - 5000)
+      .map(u => {
+        const profile = Object.values(userProfiles).find(p => p.username && p.username.toLowerCase().replace(/[.#$/\[\]]/g, "_") === u);
+        return profile ? profile.username : u;
+      });
 
     const indicator = document.getElementById("typingIndicator");
-    const typingText = document.getElementById("typingText");
+    const textSpan = document.getElementById("typingText");
 
-    if (typists.length === 0) {
+    if (typingUsers.length === 0) {
       indicator.classList.add("hidden");
     } else {
       indicator.classList.remove("hidden");
-      if (typists.length === 1) typingText.textContent = `${typists[0]} is typing...`;
-      else if (typists.length === 2) typingText.textContent = `${typists[0]} and ${typists[1]} are typing...`;
-      else typingText.textContent = `Several people are typing...`;
+      if (typingUsers.length === 1) textSpan.innerHTML = `<b>${escapeHtml(typingUsers[0])}</b> is typing...`;
+      else if (typingUsers.length === 2) textSpan.innerHTML = `<b>${escapeHtml(typingUsers[0])}</b> and <b>${escapeHtml(typingUsers[1])}</b> are typing...`;
+      else textSpan.innerHTML = `Several people are typing...`;
+    }
+  }
+
+  /* MODALS FOR DM / CHANNEL CREATION */
+  function populateUserSelectList() {
+    const listEl = document.getElementById("userSelectList");
+    listEl.innerHTML = "";
+    const filter = document.getElementById("newDmUsernameInput").value.trim().toLowerCase();
+    
+    Object.keys(userProfiles).forEach(u => {
+      if (u.toLowerCase() === username.toLowerCase()) return;
+      if (filter && !u.toLowerCase().includes(filter)) return;
+      
+      const item = document.createElement("div");
+      item.className = "user-select-item";
+      const profile = userProfiles[u] || {};
+      const status = getUserStatus(u);
+      
+      const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
+      const initial = profile.avatar_url ? '' : escapeHtml(u.charAt(0).toUpperCase());
+
+      item.innerHTML = `
+        <div class="dm-user-avatar" style="${avatarStyle}">
+          ${initial}
+          <div class="status-dot ${status}"></div>
+        </div>
+        <span>${escapeHtml(u)}</span>
+      `;
+
+      item.onclick = () => {
+        document.getElementById("newDmModal").classList.add("hidden");
+        switchContext('dm', u);
+      };
+      listEl.appendChild(item);
+    });
+  }
+
+  document.getElementById("newDmUsernameInput").addEventListener("input", populateUserSelectList);
+
+  document.getElementById("confirmStartDmBtn").onclick = () => {
+    const target = document.getElementById("newDmUsernameInput").value.trim();
+    if (target && target.toLowerCase() !== username.toLowerCase()) {
+      document.getElementById("newDmModal").classList.add("hidden");
+      switchContext('dm', target);
+    }
+  };
+
+  document.getElementById("confirmThreadBtn").onclick = async () => {
+    const chName = document.getElementById("newThreadInput").value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const isEditorOnly = document.getElementById("isEditorOnlyChannel").checked;
+    
+    if (!chName || !currentServerId) return;
+
+    try {
+      await update(ref(db, `servers/${currentServerId}/channels/${chName}`), {
+        name: chName,
+        isEditorOnly: isEditorOnly
+      });
+      document.getElementById("newThreadModal").classList.add("hidden");
+      switchContext('channel', chName);
+    } catch (err) {
+      alert("Failed to create channel.");
+    }
+  };
+
+  function updateHeaderAvatar() {
+    const headerAvatar = document.getElementById("headerAvatar");
+    if (currentContext.type === 'dm') {
+      const targetUser = currentContext.id;
+      const profile = userProfiles[targetUser.toLowerCase()] || {};
+      if (profile.avatar_url) {
+        headerAvatar.style.backgroundImage = `url('${profile.avatar_url}')`;
+        headerAvatar.textContent = "";
+      } else {
+        headerAvatar.style.backgroundImage = "none";
+        headerAvatar.textContent = targetUser.charAt(0).toUpperCase();
+      }
+      headerAvatar.onclick = () => openProfileCard(targetUser);
     }
   }
 </script>
+
 </body>
 </html>
