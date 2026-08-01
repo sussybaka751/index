@@ -924,8 +924,6 @@
     serverContextMenu.classList.add("hidden");
   });
 
-  // Clicking anywhere inside the profile popover (pronouns field, bio box,
-  // avatar overlay, etc.) should NOT bubble up and close the popover itself.
   profilePopover.addEventListener("click", (e) => e.stopPropagation());
 
   /* AUTHENTICATION */
@@ -1360,10 +1358,15 @@
             if (Array.isArray(usersData)) {
               userList = usersData;
             } else if (usersData && typeof usersData === 'object') {
-              userList = Object.keys(usersData);
+              userList = Object.values(usersData).map(u => typeof u === 'string' ? u : (u.username || '')).filter(Boolean);
+              if (userList.length === 0) {
+                userList = Object.keys(usersData);
+              }
             }
             serverReactions[emoji] = userList.length;
-            if (userList.includes(username)) serverUserReactions[emoji] = true;
+            if (userList.some(u => u.toLowerCase() === username.toLowerCase())) {
+              serverUserReactions[emoji] = true;
+            }
           });
         }
         messageReactions[msgId] = serverReactions;
@@ -1872,8 +1875,6 @@
     }
   };
 
-  // FIX: React button previously closed itself instantly because the click
-  // bubbled up to the document-level listener that hides the context menu.
   ctxReact.onclick = (e) => {
     e.stopPropagation();
     reactEmojiBar.classList.toggle("hidden");
@@ -1888,18 +1889,23 @@
       return;
     }
 
+    const safeUserKey = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
     let reactions = msg.reactions || {};
     let usersObj = reactions[emoji] || {};
+    
     if (Array.isArray(usersObj)) {
       const map = {};
-      usersObj.forEach(u => { map[u] = true; });
+      usersObj.forEach(u => { 
+        const key = String(u).toLowerCase().replace(/[.#$/\[\]]/g, "_");
+        map[key] = u; 
+      });
       usersObj = map;
     }
 
-    if (usersObj[username]) {
-      delete usersObj[username];
+    if (usersObj[safeUserKey]) {
+      delete usersObj[safeUserKey];
     } else {
-      usersObj[username] = true;
+      usersObj[safeUserKey] = username;
     }
 
     const updatedEmojiData = Object.keys(usersObj).length > 0 ? usersObj : null;
@@ -1994,12 +2000,6 @@
     profilePopover.classList.remove("hidden");
   }
 
-  // Expose to window: this is a `type="module"` script, so top-level function
-  // declarations are scoped to the module and are NOT visible to inline
-  // onclick="..." HTML attributes (which run in global scope). Message
-  // avatars/usernames call openProfileCard(...) via inline onclick, so
-  // without this line those clicks silently threw "openProfileCard is not
-  // defined" and the profile card never opened for other users.
   window.openProfileCard = openProfileCard;
 
   pfpFileInput.onchange = () => {
@@ -2141,4 +2141,5 @@
 </script>
 </body>
 </html>
+
 
