@@ -73,6 +73,11 @@
   }
   input[type="text"]:focus, input[type="password"]:focus { border-color: #00a8fc; }
 
+  /* Inline field errors */
+  .field-error {
+    color: #f23f43; font-size: 13px; font-weight: 500; margin-top: 6px; line-height: 1.3;
+  }
+
   .login-btn {
     width: 100%; padding: 12px; border: none; border-radius: 3px;
     background: #5865f2; color: white; cursor: pointer;
@@ -239,6 +244,17 @@
   .reply-reference { font-size: 13px; color: #b5bac1; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; position: relative; cursor: pointer; }
   .reply-reference::before { content: ''; position: absolute; left: -14px; top: 50%; width: 10px; height: 8px; border-left: 2px solid #4e5058; border-top: 2px solid #4e5058; border-top-left-radius: 4px; }
 
+  /* Inline message editing */
+  .inline-edit-input {
+    width: 100%; background: #383a40; border: none; border-radius: 4px; color: #dbdee1;
+    font-size: 15px; padding: 8px 10px; outline: 2px solid transparent; font-family: inherit;
+    line-height: 1.375rem;
+  }
+  .inline-edit-input:focus { outline-color: #00a8fc; }
+  .inline-edit-hint { font-size: 11px; color: #949ba4; margin-top: 4px; }
+  .inline-edit-link { color: #00a8fc; cursor: pointer; }
+  .inline-edit-link:hover { text-decoration: underline; }
+
   /* RIGHT SIDE MEMBER LIST PANEL */
   .member-list-panel {
     width: 240px; background: #2b2d31; border-left: 1px solid #1f2023; 
@@ -301,7 +317,7 @@
 
   /* PROFILE POPOVER CARD */
   .profile-popover { position: fixed; bottom: 65px; left: 80px; width: 310px; background: #232428; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 28px rgba(0,0,0,0.5); z-index: 2000; border: 1px solid #111214; }
-  .profile-banner-top { height: 60px; background: #5865f2; position: relative; }
+  .profile-banner-top { height: 60px; background: #5865f2; position: relative; transition: background-color 0.15s; }
   .profile-avatar-large { width: 72px; height: 72px; border-radius: 50%; background: #383a40; border: 6px solid #232428; position: absolute; left: 16px; top: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: white; background-size: cover; background-position: center; cursor: pointer; overflow: visible; }
   .profile-avatar-overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 11px; text-transform: uppercase; font-weight: bold; color: white; opacity: 0; transition: opacity 0.15s; text-align: center; border-radius: 50%; }
   .profile-avatar-large:hover .profile-avatar-overlay { opacity: 1; }
@@ -316,6 +332,15 @@
   .profile-bio-textarea { width: 100%; height: 70px; background: #1e1f22; border: 1px solid transparent; border-radius: 4px; color: #dbdee1; font-size: 13px; padding: 8px; resize: none; outline: none; }
   .profile-bio-textarea:focus { border-color: #00a8fc; }
   .profile-bio-readonly { font-size: 13.5px; color: #dbdee1; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+
+  /* Banner color picker */
+  .banner-color-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .banner-color-swatch {
+    width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06); transition: transform 0.1s, border-color 0.1s; flex-shrink: 0;
+  }
+  .banner-color-swatch:hover { transform: scale(1.12); }
+  .banner-color-swatch.selected { border-color: #ffffff; }
 
   /* MODALS */
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 2999; display: flex; align-items: center; justify-content: center; }
@@ -333,6 +358,9 @@
   .modal-actions button.secondary:hover { text-decoration: underline; }
   .upload-circle { width: 80px; height: 80px; border-radius: 50%; border: 2px dashed #b5bac1; margin: 12px auto; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #b5bac1; font-size: 11px; font-weight: 700; text-transform: uppercase; }
   .upload-circle:hover { border-color: #5865f2; color: #5865f2; }
+
+  /* Permission error modal */
+  .permission-icon { font-size: 48px; margin-bottom: 12px; text-align: center; }
 </style>
 </head>
 <body>
@@ -346,8 +374,16 @@
       <div class="login-subtitle">We're so excited to see you again!</div>
     </div>
     <div class="login-form">
-      <div class="field-group"><label>Account Username</label><input id="usernameInput" type="text" placeholder="" autocomplete="off"></div>
-      <div class="field-group"><label>Password</label><input id="passwordInput" type="password" placeholder=""></div>
+      <div class="field-group">
+        <label>Account Username</label>
+        <input id="usernameInput" type="text" placeholder="" autocomplete="off">
+        <div id="usernameErrorText" class="field-error hidden"></div>
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input id="passwordInput" type="password" placeholder="">
+        <div id="passwordErrorText" class="field-error hidden"></div>
+      </div>
       <button id="authBtn" class="login-btn"><span id="authBtnText">Log In</span></button>
       <div class="auth-toggle"><span id="authToggleLabel">Need an account?</span><a id="authToggleBtn">Register</a></div>
     </div>
@@ -446,7 +482,7 @@
 
 <!-- PUBLIC / PRIVATE PROFILE POPOVER CARD -->
 <div id="profilePopover" class="profile-popover hidden animate-pop">
-  <div class="profile-banner-top">
+  <div class="profile-banner-top" id="popoverBannerTop">
     <div class="profile-avatar-large" id="popoverAvatar">
       <span id="popoverAvatarInitial">?</span>
       <div class="profile-avatar-overlay hidden" id="popoverAvatarOverlay">Change<br>Avatar</div>
@@ -463,6 +499,10 @@
     <div class="profile-section-title">About Me</div>
     <textarea id="popoverBioInput" class="profile-bio-textarea hidden" placeholder="Write something about yourself..."></textarea>
     <div id="popoverBioReadonly" class="profile-bio-readonly hidden"></div>
+
+    <div class="profile-divider hidden" id="bannerColorDivider"></div>
+    <div class="profile-section-title hidden" id="bannerColorTitle">Banner Color</div>
+    <div class="banner-color-row hidden" id="bannerColorRow"></div>
   </div>
 </div>
 
@@ -545,6 +585,18 @@
   </div>
 </div>
 
+<!-- PERMISSION ERROR MODAL -->
+<div id="permissionErrorModal" class="modal-overlay hidden">
+  <div class="modal-box animate-pop">
+    <div class="permission-icon">🚫</div>
+    <h3>Permission Denied</h3>
+    <p id="permissionErrorText">You do not have permission to upload images into this channel.</p>
+    <div class="modal-actions" style="justify-content: center;">
+      <button id="permissionErrorCloseBtn">Got it</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getDatabase, ref, set, get, push, update, remove, onValue, onDisconnect, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -564,6 +616,8 @@
   const db = getDatabase(app);
 
   const EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","😉","😍","😘","😜","🤔","😎","😭","😡","👍","👎","🔥","💀"];
+
+  const BANNER_COLORS = ["#5865f2","#eb459e","#23a55a","#f0b232","#f23f43","#00a8fc","#949ba4","#9b59b6","#e67e22","#1abc9c"];
 
   let username = "";
   let userPassword = "";
@@ -591,6 +645,7 @@
   let activeTargetMemberUser = null;
   let targetContextServerId = null;
   let targetContextGroupId = null;
+  let editingMsgId = null;
 
   let tempServerIconBase64 = "";
   let selectedGroupUsers = new Set();
@@ -610,6 +665,10 @@
   const authToggleBtn = document.getElementById("authToggleBtn");
   const authToggleLabel = document.getElementById("authToggleLabel");
   const authTitle = document.getElementById("authTitle");
+  const usernameErrorText = document.getElementById("usernameErrorText");
+  const passwordErrorText = document.getElementById("passwordErrorText");
+  const usernameInputEl = document.getElementById("usernameInput");
+  const passwordInputEl = document.getElementById("passwordInput");
 
   const plusBtn = document.getElementById("plusBtn");
   const plusMenu = document.getElementById("plusMenu");
@@ -632,6 +691,7 @@
   const closeReplyBanner = document.getElementById("closeReplyBanner");
 
   const profilePopover = document.getElementById("profilePopover");
+  const popoverBannerTop = document.getElementById("popoverBannerTop");
   const popoverAvatar = document.getElementById("popoverAvatar");
   const popoverAvatarInitial = document.getElementById("popoverAvatarInitial");
   const popoverAvatarOverlay = document.getElementById("popoverAvatarOverlay");
@@ -640,6 +700,10 @@
   const popoverPronounsInput = document.getElementById("popoverPronounsInput");
   const popoverBioInput = document.getElementById("popoverBioInput");
   const popoverBioReadonly = document.getElementById("popoverBioReadonly");
+  const popoverStatusDot = document.getElementById("popoverStatusDot");
+  const bannerColorDivider = document.getElementById("bannerColorDivider");
+  const bannerColorTitle = document.getElementById("bannerColorTitle");
+  const bannerColorRow = document.getElementById("bannerColorRow");
 
   const toggleMemberListBtn = document.getElementById("toggleMemberListBtn");
   const memberListPanel = document.getElementById("memberListPanel");
@@ -647,6 +711,10 @@
   const memberRoleMenu = document.getElementById("memberRoleMenu");
   const serverContextMenu = document.getElementById("serverContextMenu");
   const groupContextMenu = document.getElementById("groupContextMenu");
+
+  const permissionErrorModal = document.getElementById("permissionErrorModal");
+  const permissionErrorText = document.getElementById("permissionErrorText");
+  const permissionErrorCloseBtn = document.getElementById("permissionErrorCloseBtn");
 
   // Inbox & Dev Features
   const inboxBtn = document.getElementById("inboxBtn");
@@ -666,6 +734,34 @@
   function getDevBadgeHTML(user) {
     return isDev(user) ? '<span class="dev-badge" title="Developer">DEV</span>' : '';
   }
+
+  /* PERMISSION ERROR MODAL */
+  function showPermissionError(message) {
+    permissionErrorText.textContent = message;
+    permissionErrorModal.classList.remove("hidden");
+  }
+  permissionErrorCloseBtn.onclick = () => permissionErrorModal.classList.add("hidden");
+  permissionErrorModal.onclick = (e) => {
+    if (e.target === permissionErrorModal) permissionErrorModal.classList.add("hidden");
+  };
+
+  /* INLINE LOGIN / REGISTER ERRORS */
+  function clearAuthErrors() {
+    usernameErrorText.textContent = "";
+    usernameErrorText.classList.add("hidden");
+    passwordErrorText.textContent = "";
+    passwordErrorText.classList.add("hidden");
+  }
+  function showUsernameError(msg) {
+    usernameErrorText.textContent = msg;
+    usernameErrorText.classList.remove("hidden");
+  }
+  function showPasswordError(msg) {
+    passwordErrorText.textContent = msg;
+    passwordErrorText.classList.remove("hidden");
+  }
+  usernameInputEl.addEventListener("input", clearAuthErrors);
+  passwordInputEl.addEventListener("input", clearAuthErrors);
 
   // Populate Emojis
   EMOJIS.forEach(emoji => {
@@ -688,6 +784,29 @@
       msgContextMenu.classList.add("hidden");
     };
     reactEmojiBar.appendChild(reactBtn);
+  });
+
+  // Populate Banner Color Swatches (built once; selection state applied when profile opens)
+  BANNER_COLORS.forEach(color => {
+    const swatch = document.createElement("div");
+    swatch.className = "banner-color-swatch";
+    swatch.style.background = color;
+    swatch.dataset.color = color;
+    swatch.onclick = async (e) => {
+      e.stopPropagation();
+      if (!activeProfileUser || activeProfileUser.toLowerCase() !== username.toLowerCase()) return;
+      popoverBannerTop.style.background = color;
+      bannerColorRow.querySelectorAll(".banner-color-swatch").forEach(s => s.classList.toggle("selected", s.dataset.color === color));
+      if (!userProfiles[username.toLowerCase()]) userProfiles[username.toLowerCase()] = {};
+      userProfiles[username.toLowerCase()].banner_color = color;
+      const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      try {
+        await update(ref(db, `users/${sanitized}`), { banner_color: color });
+      } catch (err) {
+        alert("Failed to update banner color.");
+      }
+    };
+    bannerColorRow.appendChild(swatch);
   });
 
   /* POPUP CONTROLS */
@@ -713,7 +832,11 @@
       if (ch && ch.isEditorOnly) {
         const myRole = getUserServerRole(currentServerId, username);
         if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
-          alert("Only Editors and Creators can upload files to this channel.");
+          showPermissionError(
+            file.type.startsWith("image/")
+              ? "You do not have permission to upload images into this channel."
+              : "You do not have permission to upload files into this channel."
+          );
           fileInput.value = "";
           return;
         }
@@ -872,12 +995,18 @@
     authBtnText.textContent = isRegisterMode ? "Continue" : "Log In";
     authToggleLabel.textContent = isRegisterMode ? "Already have an account?" : "Need an account?";
     authToggleBtn.textContent = isRegisterMode ? "Register" : "Log In";
+    clearAuthErrors();
   };
 
   authBtn.onclick = async () => {
-    const user = document.getElementById("usernameInput").value.trim();
-    const pass = document.getElementById("passwordInput").value.trim();
-    if (!user || !pass) return alert("Please enter username and password.");
+    clearAuthErrors();
+    const user = usernameInputEl.value.trim();
+    const pass = passwordInputEl.value.trim();
+    if (!user || !pass) {
+      if (!user) showUsernameError("Please enter a username.");
+      if (!pass) showPasswordError("Please enter a password.");
+      return;
+    }
 
     authBtn.classList.add("processing-state");
     authBtnText.textContent = "Connecting...";
@@ -891,7 +1020,7 @@
       const snapshot = await get(userRef);
       if (isRegisterMode) {
         if (snapshot.exists()) {
-          alert("Username is already taken.");
+          showUsernameError("Username is already taken.");
           authBtn.classList.remove("processing-state");
           authBtnText.textContent = "Continue";
           return;
@@ -899,14 +1028,14 @@
         await set(userRef, { username, password: userPassword, created_at: new Date().toISOString() });
       } else {
         if (!snapshot.exists() || snapshot.val().password !== userPassword) {
-          alert("Invalid username or password.");
+          showPasswordError("Invalid username or password.");
           authBtn.classList.remove("processing-state");
           authBtnText.textContent = "Log In";
           return;
         }
       }
     } catch (err) {
-      alert("Auth error: " + err.message);
+      showPasswordError("Auth error: " + err.message);
       authBtn.classList.remove("processing-state");
       authBtnText.textContent = isRegisterMode ? "Continue" : "Log In";
       return;
@@ -1313,7 +1442,65 @@
     return false;
   }
 
-  /* MESSAGE RENDER & INDIVIDUAL MESSAGE FIX */
+  /* TYPING INDICATOR UTILS */
+  function getTypingKey() {
+    if (currentContext.type === 'dm') return `dm_${getDmRoomId(username, currentContext.id)}`;
+    if (currentContext.type === 'group') return `group_${currentContext.id}`;
+    if (currentContext.type === 'channel') return `server_${currentServerId}_${currentContext.id}`;
+    return "general";
+  }
+
+  async function sendTypingSignal(isTyping) {
+    if (!username) return;
+    const typingKey = getTypingKey();
+    const sanitizedUser = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const typingRef = ref(db, `typing/${typingKey}/${sanitizedUser}`);
+    try {
+      if (isTyping) {
+        await set(typingRef, true);
+      } else {
+        await set(typingRef, null);
+      }
+    } catch (err) {}
+  }
+
+  messageInput.addEventListener("input", () => {
+    const now = Date.now();
+    if (now - lastTypingSentTime > 3000) {
+      lastTypingSentTime = now;
+      sendTypingSignal(true);
+    }
+    if (typingTimeout) clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      sendTypingSignal(false);
+    }, 4000);
+  });
+
+  function renderTypingIndicator() {
+    const typingKey = getTypingKey();
+    const typingData = serverTypingMap[typingKey] || {};
+    const sanitizedMyUser = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+
+    const activeTypers = Object.keys(typingData).filter(u => u !== sanitizedMyUser && typingData[u]);
+
+    const indicatorEl = document.getElementById("typingIndicator");
+    const textEl = document.getElementById("typingText");
+
+    if (activeTypers.length > 0) {
+      indicatorEl.classList.remove("hidden");
+      if (activeTypers.length === 1) {
+        textEl.textContent = `${activeTypers[0]} is typing...`;
+      } else if (activeTypers.length === 2) {
+        textEl.textContent = `${activeTypers[0]} and ${activeTypers[1]} are typing...`;
+      } else {
+        textEl.textContent = `Several people are typing...`;
+      }
+    } else {
+      indicatorEl.classList.add("hidden");
+    }
+  }
+
+  /* MESSAGE RENDER & INDIVIDUAL MESSAGE */
   function renderMessages(forceScroll = false) {
     let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 60);
 
@@ -1422,9 +1609,11 @@
 
         messagesEl.appendChild(div);
       } else {
-        const textEl = document.getElementById(`text_${msgId}`);
-        if (textEl && textEl.innerHTML !== formatMessageContent(msg.message)) {
-          textEl.innerHTML = formatMessageContent(msg.message);
+        if (editingMsgId !== msgId) {
+          const textEl = document.getElementById(`text_${msgId}`);
+          if (textEl && textEl.innerHTML !== formatMessageContent(msg.message)) {
+            textEl.innerHTML = formatMessageContent(msg.message);
+          }
         }
         const editedEl = document.getElementById(`edited_${msgId}`);
         if (editedEl) editedEl.innerHTML = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
@@ -1517,7 +1706,6 @@
 
     } else {
       const allUsers = Object.keys(userProfiles).filter(u => {
-        // Devs are invisible in generic lists unless specifically interacting
         if (isDev(u) && u.toLowerCase() !== username.toLowerCase()) return false;
         return true;
       });
@@ -1779,7 +1967,7 @@
           if (confirm(`Remove ${mUser} from group?`)) {
             const newMembers = members.filter(m => m.toLowerCase() !== mUser.toLowerCase());
             await update(ref(db, `groups/${groupId}`), { members: newMembers });
-            openGroupDetailsModal(groupId); // Refresh view
+            openGroupDetailsModal(groupId);
           }
         };
       } else {
@@ -1803,7 +1991,7 @@
         const newMembers = [...members, newUser];
         await update(ref(db, `groups/${groupId}`), { members: newMembers });
         document.getElementById("groupAddUserInput").value = "";
-        openGroupDetailsModal(groupId); // Refresh view
+        openGroupDetailsModal(groupId);
       };
     } else {
       addSection.classList.add("hidden");
@@ -1884,23 +2072,57 @@
     msgContextMenu.classList.add("hidden");
   };
 
-  ctxEdit.onclick = async () => {
+  /* INLINE MESSAGE EDITING */
+  function startInlineEdit(domId, msg) {
+    const textEl = document.getElementById(`text_${domId}`);
+    if (!textEl) return;
+
+    editingMsgId = domId;
+    const originalText = msg.message;
+
+    textEl.innerHTML = `
+      <input type="text" class="inline-edit-input" id="editInput_${domId}" value="${escapeHtml(originalText)}">
+      <div class="inline-edit-hint">escape to <span class="inline-edit-link" data-action="cancel">cancel</span> • enter to <span class="inline-edit-link" data-action="save">save</span></div>
+    `;
+
+    const inputEl = document.getElementById(`editInput_${domId}`);
+    inputEl.focus();
+    inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+    inputEl.onclick = (e) => e.stopPropagation();
+
+    async function finishEdit(shouldSave) {
+      editingMsgId = null;
+      let finalText = originalText;
+      if (shouldSave) {
+        const newVal = inputEl.value.trim();
+        if (newVal && newVal !== originalText) {
+          finalText = newVal;
+          try {
+            await update(ref(db, `messages/${msg.id}`), { message: newVal, is_edited: true });
+          } catch (err) {
+            alert("Failed to edit message.");
+          }
+        }
+      }
+      const liveTextEl = document.getElementById(`text_${domId}`);
+      if (liveTextEl) liveTextEl.innerHTML = formatMessageContent(finalText);
+    }
+
+    inputEl.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); finishEdit(true); }
+      else if (e.key === "Escape") { e.preventDefault(); finishEdit(false); }
+    });
+
+    textEl.querySelector('[data-action="cancel"]').onclick = (e) => { e.stopPropagation(); finishEdit(false); };
+    textEl.querySelector('[data-action="save"]').onclick = (e) => { e.stopPropagation(); finishEdit(true); };
+  }
+
+  ctxEdit.onclick = () => {
     msgContextMenu.classList.add("hidden");
     if (!activeContextMsg || !activeContextMsg.id || activeContextMsg.id.startsWith("pending_")) return;
-
-    const currentText = activeContextMsg.message || "";
-    const newText = prompt("Edit your message:", currentText);
-
-    if (newText !== null && newText.trim() !== "" && newText !== currentText) {
-      try {
-        await update(ref(db, `messages/${activeContextMsg.id}`), {
-          message: newText,
-          is_edited: true
-        });
-      } catch (err) {
-        alert("Failed to edit message.");
-      }
-    }
+    const domId = getMsgDomId(activeContextMsg);
+    startInlineEdit(domId, activeContextMsg);
   };
 
   ctxReact.onclick = (e) => {
@@ -1968,6 +2190,7 @@
     activeProfileUser = targetUser;
     const profile = userProfiles[targetUser.toLowerCase()] || {};
     const status = getUserStatus(targetUser);
+    const isMe = targetUser.toLowerCase() === username.toLowerCase();
 
     if (profile.avatar_url) {
       popoverAvatar.style.backgroundImage = `url('${profile.avatar_url}')`;
@@ -1977,13 +2200,15 @@
       popoverAvatarInitial.textContent = targetUser.charAt(0).toUpperCase();
     }
 
+    popoverBannerTop.style.background = profile.banner_color || "#5865f2";
+
     popoverStatusDot.className = `status-dot-large ${status}`;
     popoverUsername.innerHTML = `${escapeHtml(targetUser)} ${getDevBadgeHTML(targetUser)}`;
     
     const createdStr = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "Unknown";
     popoverCreatedDate.textContent = `Member Since: ${createdStr}`;
 
-    if (targetUser.toLowerCase() === username.toLowerCase()) {
+    if (isMe) {
       popoverAvatarOverlay.classList.remove("hidden");
       popoverAvatar.onclick = () => document.getElementById("pfpFileInput").click();
       
@@ -1993,6 +2218,12 @@
       popoverBioInput.classList.remove("hidden");
       popoverBioReadonly.classList.add("hidden");
       popoverBioInput.value = profile.bio || "";
+
+      bannerColorDivider.classList.remove("hidden");
+      bannerColorTitle.classList.remove("hidden");
+      bannerColorRow.classList.remove("hidden");
+      const selectedColor = profile.banner_color || "#5865f2";
+      bannerColorRow.querySelectorAll(".banner-color-swatch").forEach(s => s.classList.toggle("selected", s.dataset.color === selectedColor));
     } else {
       popoverAvatarOverlay.classList.add("hidden");
       popoverAvatar.onclick = null;
@@ -2003,6 +2234,10 @@
       popoverBioInput.classList.add("hidden");
       popoverBioReadonly.classList.remove("hidden");
       popoverBioReadonly.textContent = profile.bio || "No bio available.";
+
+      bannerColorDivider.classList.add("hidden");
+      bannerColorTitle.classList.add("hidden");
+      bannerColorRow.classList.add("hidden");
     }
 
     profilePopover.classList.remove("hidden");
@@ -2027,7 +2262,11 @@
     if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
       const val = e.target.value.trim();
       const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-      await update(ref(db, `users/${sanitized}`), { pronouns: val });
+      try {
+        await update(ref(db, `users/${sanitized}`), { pronouns: val });
+      } catch (err) {
+        alert("Failed to update pronouns.");
+      }
     }
   });
 
@@ -2035,77 +2274,42 @@
     if (activeProfileUser && activeProfileUser.toLowerCase() === username.toLowerCase()) {
       const val = e.target.value.trim();
       const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-      await update(ref(db, `users/${sanitized}`), { bio: val });
+      try {
+        await update(ref(db, `users/${sanitized}`), { bio: val });
+      } catch (err) {
+        alert("Failed to update bio.");
+      }
     }
   });
 
-  /* TYPING INDICATOR */
-  function sendTypingSignal(isTyping) {
-    if (!username) return;
-    const targetDm = getCurrentTargetDm();
-    const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    set(ref(db, `typing/${targetDm}/${mySanitized}`), isTyping ? Date.now() : null);
-  }
-
-  messageInput.addEventListener("input", () => {
-    if (Date.now() - lastTypingSentTime > 2000) {
-      sendTypingSignal(true);
-      lastTypingSentTime = Date.now();
-    }
-    if (typingTimeout) clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => sendTypingSignal(false), 3000);
-  });
-
-  function renderTypingIndicator() {
-    const targetDm = getCurrentTargetDm();
-    const typingUsersObj = serverTypingMap[targetDm] || {};
-    
-    const typingUsers = Object.keys(typingUsersObj)
-      .filter(u => u !== username.toLowerCase().replace(/[.#$/\[\]]/g, "_") && typingUsersObj[u] > Date.now() - 5000)
-      .map(u => {
-        const profile = Object.values(userProfiles).find(p => p.username && p.username.toLowerCase().replace(/[.#$/\[\]]/g, "_") === u);
-        return profile ? profile.username : u;
-      });
-
-    const indicator = document.getElementById("typingIndicator");
-    const textSpan = document.getElementById("typingText");
-
-    if (typingUsers.length === 0) {
-      indicator.classList.add("hidden");
+  function updateHeaderAvatar() {
+    const container = document.getElementById("headerAvatar");
+    const otherUser = currentContext.type === 'dm' ? currentContext.id : "";
+    if (!otherUser) return;
+    const profile = userProfiles[otherUser.toLowerCase()] || {};
+    if (profile.avatar_url) {
+      container.style.backgroundImage = `url('${profile.avatar_url}')`;
+      container.textContent = "";
     } else {
-      indicator.classList.remove("hidden");
-      if (typingUsers.length === 1) textSpan.innerHTML = `<b>${escapeHtml(typingUsers[0])}</b> is typing...`;
-      else if (typingUsers.length === 2) textSpan.innerHTML = `<b>${escapeHtml(typingUsers[0])}</b> and <b>${escapeHtml(typingUsers[1])}</b> are typing...`;
-      else textSpan.innerHTML = `Several people are typing...`;
+      container.style.backgroundImage = "none";
+      container.textContent = otherUser.charAt(0).toUpperCase();
     }
   }
 
-  /* MODALS FOR DM / CHANNEL CREATION */
   function populateUserSelectList() {
     const listEl = document.getElementById("userSelectList");
     listEl.innerHTML = "";
-    const filter = document.getElementById("newDmUsernameInput").value.trim().toLowerCase();
+    const knownUsers = Object.keys(userProfiles).filter(u => u.toLowerCase() !== username.toLowerCase());
     
-    Object.keys(userProfiles).forEach(u => {
-      if (u.toLowerCase() === username.toLowerCase()) return;
-      if (filter && !u.toLowerCase().includes(filter)) return;
-      
+    if (knownUsers.length === 0) {
+      listEl.innerHTML = `<div style="color: #949ba4; font-size: 13px; padding: 12px; text-align: center;">No other users registered.</div>`;
+      return;
+    }
+
+    knownUsers.forEach(u => {
       const item = document.createElement("div");
       item.className = "user-select-item";
-      const profile = userProfiles[u] || {};
-      const status = getUserStatus(u);
-      
-      const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
-      const initial = profile.avatar_url ? '' : escapeHtml(u.charAt(0).toUpperCase());
-
-      item.innerHTML = `
-        <div class="dm-user-avatar" style="${avatarStyle}">
-          ${initial}
-          <div class="status-dot ${status}"></div>
-        </div>
-        <span>${escapeHtml(u)}</span>
-      `;
-
+      item.innerHTML = `<span>${escapeHtml(u)}</span>`;
       item.onclick = () => {
         document.getElementById("newDmModal").classList.add("hidden");
         switchContext('dm', u);
@@ -2114,51 +2318,31 @@
     });
   }
 
-  document.getElementById("newDmUsernameInput").addEventListener("input", populateUserSelectList);
-
   document.getElementById("confirmStartDmBtn").onclick = () => {
-    const target = document.getElementById("newDmUsernameInput").value.trim();
-    if (target && target.toLowerCase() !== username.toLowerCase()) {
+    const val = document.getElementById("newDmUsernameInput").value.trim();
+    if (val) {
       document.getElementById("newDmModal").classList.add("hidden");
-      switchContext('dm', target);
+      switchContext('dm', val);
     }
   };
 
   document.getElementById("confirmThreadBtn").onclick = async () => {
-    const chName = document.getElementById("newThreadInput").value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const channelName = document.getElementById("newThreadInput").value.trim().toLowerCase().replace(/[\s#]/g, "-");
     const isEditorOnly = document.getElementById("isEditorOnlyChannel").checked;
-    
-    if (!chName || !currentServerId) return;
+    if (!channelName || !currentServerId) return alert("Please enter a channel name.");
 
     try {
-      await update(ref(db, `servers/${currentServerId}/channels/${chName}`), {
-        name: chName,
+      await set(ref(db, `servers/${currentServerId}/channels/${channelName}`), {
+        name: channelName,
         isEditorOnly: isEditorOnly
       });
       document.getElementById("newThreadModal").classList.add("hidden");
-      switchContext('channel', chName);
+      switchContext('channel', channelName);
     } catch (err) {
       alert("Failed to create channel.");
     }
   };
-
-  function updateHeaderAvatar() {
-    const headerAvatar = document.getElementById("headerAvatar");
-    if (currentContext.type === 'dm') {
-      const targetUser = currentContext.id;
-      const profile = userProfiles[targetUser.toLowerCase()] || {};
-      if (profile.avatar_url) {
-        headerAvatar.style.backgroundImage = `url('${profile.avatar_url}')`;
-        headerAvatar.textContent = "";
-      } else {
-        headerAvatar.style.backgroundImage = "none";
-        headerAvatar.textContent = targetUser.charAt(0).toUpperCase();
-      }
-      headerAvatar.onclick = () => openProfileCard(targetUser);
-    }
-  }
 </script>
-
 </body>
 </html>
 
