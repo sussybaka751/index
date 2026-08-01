@@ -36,6 +36,21 @@
   .processing-state { opacity: 0.7; pointer-events: none; }
   .hidden { display: none !important; }
 
+  /* DEV BADGE */
+  .dev-badge {
+    color: #00e5ff;
+    border: 1px solid #00e5ff;
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.6);
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    font-weight: 800;
+    cursor: default;
+  }
+
   /* DISCORD LOGIN SCREEN */
   #login-container {
     width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; 
@@ -82,9 +97,20 @@
     display: flex; align-items: center; justify-content: center; cursor: pointer; 
     transition: all 0.2s ease; font-size: 18px; font-weight: 600; position: relative; flex-shrink: 0;
   }
+  
+  /* Moving White Line for Servers */
+  .server-icon::before {
+    content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+    width: 4px; height: 8px; background: #ffffff; border-radius: 0 4px 4px 0;
+    opacity: 0; transition: height 0.2s ease, opacity 0.2s ease; pointer-events: none;
+  }
+  .server-icon:hover::before { height: 20px; opacity: 1; }
+  .server-icon.active::before { height: 40px; opacity: 1; }
+
   .server-icon:hover, .server-icon.active { border-radius: 16px; background: #5865f2; color: #ffffff; }
   .server-icon.add-server-btn { background: #313338; color: #23a55a; }
   .server-icon.add-server-btn:hover { background: #23a55a; color: #ffffff; }
+  .server-icon.add-server-btn::before { display: none; }
   .server-separator { width: 32px; height: 2px; background: #35363c; border-radius: 1px; margin: 4px 0; flex-shrink: 0; }
 
   /* SIDEBAR */
@@ -141,7 +167,7 @@
   .status-dot-large.offline { background: #1e1f22; border: 4px solid #80848e; }
 
   .user-names { display: flex; flex-direction: column; overflow: hidden; }
-  .user-display-name { font-size: 14px; font-weight: 600; color: #f2f3f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-display-name { font-size: 14px; font-weight: 600; color: #f2f3f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; }
   .user-tag { font-size: 12px; color: #949ba4; }
 
   /* CHAT VIEWPORT */
@@ -169,75 +195,59 @@
   }
   .add-person-btn:hover { background: #4752c4; }
 
-  .icon-btn { cursor: pointer; color: #b5bac1; display: flex; align-items: center; justify-content: center; transition: color 0.15s; }
+  .icon-btn { cursor: pointer; color: #b5bac1; display: flex; align-items: center; justify-content: center; transition: color 0.15s; position: relative; }
   .icon-btn:hover, .icon-btn.active { color: #f2f3f5; }
+
+  /* Dev Inbox Popup */
+  .inbox-popup {
+    position: absolute; top: 48px; right: 16px; width: 320px; max-height: 400px;
+    background: #2b2d31; border: 1px solid #1f2023; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 2000; display: flex; flex-direction: column;
+  }
+  .inbox-header { padding: 12px 16px; border-bottom: 1px solid #1f2023; font-weight: 700; color: #f2f3f5; }
+  .inbox-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .announcement { background: #1e1f22; padding: 8px; border-radius: 6px; font-size: 13px; color: #dbdee1; border-left: 3px solid #00e5ff; }
+  .announcement-time { font-size: 10px; color: #949ba4; margin-bottom: 4px; display: block; }
+  .inbox-input-area { padding: 12px; border-top: 1px solid #1f2023; background: #232428; border-radius: 0 0 8px 8px; }
+  .inbox-input-area input { width: 100%; padding: 8px; background: #383a40; border: none; color: #dbdee1; border-radius: 4px; outline: none; }
+  .inbox-badge { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: #f23f43; border-radius: 50%; border: 2px solid #313338; display: none; }
 
   /* CHAT BODY & MEMBER PANEL */
   .chat-content-container { flex: 1; display: flex; overflow: hidden; position: relative; }
   #messages { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; scroll-behavior: smooth; }
   
-  /* MESSAGES & REAL DISCORD ALIGNMENT */
   .message { 
-    display: flex; 
-    padding: 4px 16px; 
-    gap: 16px; 
-    position: relative; 
-    max-width: 100%; 
-    word-wrap: break-word; 
-    margin-top: 16px; 
-    cursor: pointer; 
-    transition: background 0.1s; 
+    display: flex; padding: 4px 16px; gap: 16px; position: relative; max-width: 100%; 
+    word-wrap: break-word; margin-top: 16px; cursor: pointer; transition: background 0.1s; 
   }
   .message:hover { background: rgba(0, 0, 0, 0.08); }
 
   .avatar { 
-    width: 40px; 
-    height: 40px; 
-    border-radius: 50%; 
-    background: #5865f2; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    color: white; 
-    font-weight: 600; 
-    font-size: 16px; 
-    cursor: pointer; 
-    background-size: cover; 
-    background-position: center; 
-    flex-shrink: 0;
-    margin-top: 2px;
+    width: 40px; height: 40px; border-radius: 50%; background: #5865f2; 
+    display: flex; align-items: center; justify-content: center; color: white; 
+    font-weight: 600; font-size: 16px; cursor: pointer; background-size: cover; 
+    background-position: center; flex-shrink: 0; margin-top: 2px;
   }
   .message-content { display: flex; flex-direction: column; width: 100%; min-width: 0; }
-  .message-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
-  .message b { color: #f2f3f5; font-size: 15px; font-weight: 500; cursor: pointer; }
+  .message-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; flex-wrap: wrap; }
+  .message b { color: #f2f3f5; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; }
   .message b:hover { text-decoration: underline; }
   .time { font-size: 12px; color: #949ba4; font-weight: 400; }
   .text { color: #dbdee1; font-size: 15px; line-height: 1.375rem; word-break: break-word; }
   .edited-tag { font-size: 11px; color: #949ba4; margin-left: 4px; }
   
-  .reply-reference {
-    font-size: 13px; color: #b5bac1; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; position: relative; cursor: pointer;
-  }
-  .reply-reference::before {
-    content: ''; position: absolute; left: -14px; top: 50%; width: 10px; height: 8px;
-    border-left: 2px solid #4e5058; border-top: 2px solid #4e5058; border-top-left-radius: 4px;
-  }
+  .reply-reference { font-size: 13px; color: #b5bac1; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; position: relative; cursor: pointer; }
+  .reply-reference::before { content: ''; position: absolute; left: -14px; top: 50%; width: 10px; height: 8px; border-left: 2px solid #4e5058; border-top: 2px solid #4e5058; border-top-left-radius: 4px; }
 
   /* RIGHT SIDE MEMBER LIST PANEL */
   .member-list-panel {
     width: 240px; background: #2b2d31; border-left: 1px solid #1f2023; 
     display: flex; flex-direction: column; flex-shrink: 0; padding: 16px 8px; overflow-y: auto;
   }
-  .member-group-title {
-    font-size: 11px; font-weight: 700; color: #949ba4; text-transform: uppercase;
-    letter-spacing: 0.25px; padding: 8px 8px 4px 8px; margin-top: 8px;
-  }
-  .member-item {
-    display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px;
-    cursor: pointer; transition: background 0.15s; margin-top: 1px;
-  }
+  .member-group-title { font-size: 11px; font-weight: 700; color: #949ba4; text-transform: uppercase; letter-spacing: 0.25px; padding: 8px 8px 4px 8px; margin-top: 8px; }
+  .member-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; cursor: pointer; transition: background 0.15s; margin-top: 1px; }
   .member-item:hover { background: #35373c; }
-  .member-name { font-size: 14px; font-weight: 500; color: #949ba4; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .member-name { font-size: 14px; font-weight: 500; color: #949ba4; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; }
   .member-item.online .member-name { color: #dbdee1; }
   .role-badge { font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: 700; text-transform: uppercase; }
   .role-creator { background: rgba(240, 178, 50, 0.2); color: #f0b232; }
@@ -259,107 +269,51 @@
 
   /* INPUT AREA */
   #bottom { padding: 0 16px 24px 16px; position: relative; flex-shrink: 0; }
-  .reply-banner {
-    background: #2b2d31; color: #b5bac1; font-size: 13px; padding: 8px 16px;
-    border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: -8px; z-index: 1; position: relative; font-weight: 500;
-  }
+  .reply-banner { background: #2b2d31; color: #b5bac1; font-size: 13px; padding: 8px 16px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: -8px; z-index: 1; position: relative; font-weight: 500; }
   .reply-banner-close { cursor: pointer; color: #f23f43; font-weight: bold; font-size: 14px; }
 
-  .typing-indicator {
-    height: 24px; display: flex; align-items: center; gap: 8px;
-    font-size: 12px; font-weight: 600; color: #dbdee1; padding: 0 4px 4px 4px;
-  }
+  .typing-indicator { height: 24px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #dbdee1; padding: 0 4px 4px 4px; }
   .typing-dots { display: inline-flex; gap: 2px; }
-  .typing-dots span {
-    width: 4px; height: 4px; background-color: #dbdee1; border-radius: 50%;
-    animation: typingBlink 1.4s infinite ease-in-out both;
-  }
+  .typing-dots span { width: 4px; height: 4px; background-color: #dbdee1; border-radius: 50%; animation: typingBlink 1.4s infinite ease-in-out both; }
   .typing-dots span:nth-child(1) { animation-delay: 0s; }
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
   .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBlink { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
 
-  @keyframes typingBlink {
-    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-    40% { opacity: 1; transform: scale(1.2); }
-  }
-
-  .input-wrapper { 
-    background: #383a40; border-radius: 8px; padding: 0 16px; 
-    display: flex; align-items: center; gap: 16px; min-height: 44px; z-index: 2; position: relative;
-  }
+  .input-wrapper { background: #383a40; border-radius: 8px; padding: 0 16px; display: flex; align-items: center; gap: 16px; min-height: 44px; z-index: 2; position: relative; }
   #message { flex: 1; background: transparent; color: #dbdee1; font-size: 15px; border: none; outline: none; padding: 11px 0; }
   #message::placeholder { color: #80848e; }
   #message:disabled { cursor: not-allowed; opacity: 0.6; }
 
-  .plus-btn { 
-    width: 24px; height: 24px; border-radius: 50%; background: #4e5058; color: #dbdee1; 
-    font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; transition: background 0.15s, color 0.15s; flex-shrink: 0;
-  }
+  .plus-btn { width: 24px; height: 24px; border-radius: 50%; background: #4e5058; color: #dbdee1; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
   .plus-btn:hover { background: #dbdee1; color: #313338; }
 
   /* POPUPS & CONTEXT MENUS */
-  .glass-popup { 
-    position: absolute; bottom: 75px; left: 16px; background: #2b2d31; 
-    border: 1px solid #1f2023; border-radius: 8px; padding: 8px; 
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24); z-index: 100; min-width: 180px; 
-  }
-  .menu-option { 
-    display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: transparent; 
-    border: none; color: #b5bac1; border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; 
-    transition: background 0.15s, color 0.15s; text-align: left; font-weight: 500;
-  }
+  .glass-popup { position: absolute; bottom: 75px; left: 16px; background: #2b2d31; border: 1px solid #1f2023; border-radius: 8px; padding: 8px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24); z-index: 100; min-width: 180px; }
+  .menu-option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: transparent; border: none; color: #b5bac1; border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; transition: background 0.15s, color 0.15s; text-align: left; font-weight: 500; }
   .menu-option:hover { background: #5865f2; color: white; }
   .menu-option svg { fill: currentColor; }
 
-  .msg-context-menu {
-    position: fixed; background: #232428; border: 1px solid #111214; 
-    border-radius: 8px; padding: 6px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); 
-    z-index: 1000; display: flex; flex-direction: column; gap: 4px; min-width: 160px;
-  }
-
+  .msg-context-menu { position: fixed; background: #232428; border: 1px solid #111214; border-radius: 8px; padding: 6px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 1000; display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
   .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 240px; padding: 4px; }
   .emoji-item { background: transparent; border: none; font-size: 20px; cursor: pointer; border-radius: 4px; padding: 4px; }
   .emoji-item:hover { background: #35373c; transform: scale(1.15); }
 
   /* PROFILE POPOVER CARD */
-  .profile-popover {
-    position: fixed; bottom: 65px; left: 80px; width: 310px; background: #232428; 
-    border-radius: 12px; overflow: hidden; box-shadow: 0 12px 28px rgba(0,0,0,0.5); 
-    z-index: 2000; border: 1px solid #111214;
-  }
+  .profile-popover { position: fixed; bottom: 65px; left: 80px; width: 310px; background: #232428; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 28px rgba(0,0,0,0.5); z-index: 2000; border: 1px solid #111214; }
   .profile-banner-top { height: 60px; background: #5865f2; position: relative; }
-  .profile-avatar-large {
-    width: 72px; height: 72px; border-radius: 50%; background: #383a40; 
-    border: 6px solid #232428; position: absolute; left: 16px; top: 20px; 
-    display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: white;
-    background-size: cover; background-position: center; cursor: pointer; overflow: visible;
-  }
-  .profile-avatar-overlay {
-    position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.4); 
-    display: flex; align-items: center; justify-content: center; font-size: 11px; text-transform: uppercase;
-    font-weight: bold; color: white; opacity: 0; transition: opacity 0.15s; text-align: center; border-radius: 50%;
-  }
+  .profile-avatar-large { width: 72px; height: 72px; border-radius: 50%; background: #383a40; border: 6px solid #232428; position: absolute; left: 16px; top: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: white; background-size: cover; background-position: center; cursor: pointer; overflow: visible; }
+  .profile-avatar-overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 11px; text-transform: uppercase; font-weight: bold; color: white; opacity: 0; transition: opacity 0.15s; text-align: center; border-radius: 50%; }
   .profile-avatar-large:hover .profile-avatar-overlay { opacity: 1; }
-  
   .profile-body { padding: 44px 16px 16px 16px; background: #111214; margin: 8px; border-radius: 8px; }
   .profile-username-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .profile-username-text { font-size: 18px; font-weight: 700; color: #f2f3f5; }
+  .profile-username-text { font-size: 18px; font-weight: 700; color: #f2f3f5; display: flex; align-items: center; }
   .profile-created-date { font-size: 12px; color: #949ba4; margin-bottom: 8px; }
-  .profile-pronouns-input {
-    background: transparent; border: 1px solid transparent; color: #b5bac1; font-size: 13px;
-    width: 100px; text-align: right; border-radius: 4px; padding: 2px 4px; outline: none;
-  }
+  .profile-pronouns-input { background: transparent; border: 1px solid transparent; color: #b5bac1; font-size: 13px; width: 100px; text-align: right; border-radius: 4px; padding: 2px 4px; outline: none; }
   .profile-pronouns-input:hover, .profile-pronouns-input:focus { border-color: #383a40; background: #1e1f22; }
-
   .profile-divider { height: 1px; background: #2b2d31; margin: 12px 0; }
   .profile-section-title { font-size: 11px; font-weight: 700; color: #b5bac1; text-transform: uppercase; margin-bottom: 6px; }
-  
-  .profile-bio-textarea {
-    width: 100%; height: 70px; background: #1e1f22; border: 1px solid transparent; 
-    border-radius: 4px; color: #dbdee1; font-size: 13px; padding: 8px; resize: none; outline: none;
-  }
+  .profile-bio-textarea { width: 100%; height: 70px; background: #1e1f22; border: 1px solid transparent; border-radius: 4px; color: #dbdee1; font-size: 13px; padding: 8px; resize: none; outline: none; }
   .profile-bio-textarea:focus { border-color: #00a8fc; }
   .profile-bio-readonly { font-size: 13.5px; color: #dbdee1; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
 
@@ -369,22 +323,15 @@
   .modal-box h3 { color: #f2f3f5; font-size: 22px; font-weight: 700; margin-bottom: 8px; text-align: center; }
   .modal-box p { color: #949ba4; font-size: 14px; text-align: center; margin-bottom: 16px; }
   .modal-box input[type="text"] { margin-top: 8px; margin-bottom: 12px; width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #1f2023; background: #1e1f22; color: #dbdee1; outline: none; font-size: 15px; }
-  
   .user-select-list { max-height: 180px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px; }
   .user-select-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 4px; background: #2b2d31; color: #dbdee1; cursor: pointer; }
   .user-select-item:hover { background: #5865f2; color: #ffffff; }
   .user-select-item.selected { background: #4752c4; color: #ffffff; }
-
   .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
   .modal-actions button { padding: 10px 24px; background: #5865f2; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
   .modal-actions button.secondary { background: transparent; color: #dbdee1; }
   .modal-actions button.secondary:hover { text-decoration: underline; }
-
-  .upload-circle {
-    width: 80px; height: 80px; border-radius: 50%; border: 2px dashed #b5bac1;
-    margin: 12px auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; color: #b5bac1; font-size: 11px; font-weight: 700; text-transform: uppercase;
-  }
+  .upload-circle { width: 80px; height: 80px; border-radius: 50%; border: 2px dashed #b5bac1; margin: 12px auto; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #b5bac1; font-size: 11px; font-weight: 700; text-transform: uppercase; }
   .upload-circle:hover { border-color: #5865f2; color: #5865f2; }
 </style>
 </head>
@@ -394,28 +341,15 @@
 <div id="login-container">
   <div id="login" class="animate-pop">
     <div class="login-header">
-      <svg class="discord-logo" viewBox="0 0 127.14 96.36">
-        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0,-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1,-10.85-5.18c.91-.66,1.8-1.34,2.66-2a68.42,68.42,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,121.64,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74c6.51,0,11.62,5.77,11.43,12.74C53.88,60,48.78,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74c6.5,0,11.62,5.77,11.43,12.74C96.12,60,91,65.69,84.69,65.69Z"/>
-      </svg>
+      <svg class="discord-logo" viewBox="0 0 127.14 96.36"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0,-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1,-10.85-5.18c.91-.66,1.8-1.34,2.66-2a68.42,68.42,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,121.64,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74c6.51,0,11.62,5.77,11.43,12.74C53.88,60,48.78,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74c6.5,0,11.62,5.77,11.43,12.74C96.12,60,91,65.69,84.69,65.69Z"/></svg>
       <div class="login-title" id="authTitle">Welcome back!</div>
       <div class="login-subtitle">We're so excited to see you again!</div>
     </div>
     <div class="login-form">
-      <div class="field-group">
-        <label>Account Username</label>
-        <input id="usernameInput" type="text" placeholder="" autocomplete="off">
-      </div>
-      <div class="field-group">
-        <label>Password</label>
-        <input id="passwordInput" type="password" placeholder="">
-      </div>
-      <button id="authBtn" class="login-btn">
-        <span id="authBtnText">Log In</span>
-      </button>
-      <div class="auth-toggle">
-        <span id="authToggleLabel">Need an account?</span>
-        <a id="authToggleBtn">Register</a>
-      </div>
+      <div class="field-group"><label>Account Username</label><input id="usernameInput" type="text" placeholder="" autocomplete="off"></div>
+      <div class="field-group"><label>Password</label><input id="passwordInput" type="password" placeholder=""></div>
+      <button id="authBtn" class="login-btn"><span id="authBtnText">Log In</span></button>
+      <div class="auth-toggle"><span id="authToggleLabel">Need an account?</span><a id="authToggleBtn">Register</a></div>
     </div>
   </div>
 </div>
@@ -425,17 +359,9 @@
   <!-- Server Bar -->
   <div class="servers-bar">
     <div class="server-icon active" id="homeBtn" title="Direct Messages">
-      <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="currentColor">
-        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0,-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1,-10.85-5.18c.91-.66,1.8-1.34,2.66-2a68.42,68.42,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,121.64,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74c6.51,0,11.62,5.77,11.43,12.74C53.88,60,48.78,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74c6.5,0,11.62,5.77,11.43,12.74C96.12,60,91,65.69,84.69,65.69Z"/>
-      </svg>
+      <svg width="24" height="24" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0,-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1,-10.85-5.18c.91-.66,1.8-1.34,2.66-2a68.42,68.42,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,121.64,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74c6.51,0,11.62,5.77,11.43,12.74C53.88,60,48.78,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74c6.5,0,11.62,5.77,11.43,12.74C96.12,60,91,65.69,84.69,65.69Z"/></svg>
     </div>
-    
-    <div class="server-icon add-server-btn" id="openCreateServerBtn" title="Add a Server">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-      </svg>
-    </div>
-
+    <div class="server-icon add-server-btn" id="openCreateServerBtn" title="Add a Server"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
     <div class="server-separator"></div>
     <div id="serverListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
   </div>
@@ -443,13 +369,9 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header" id="sidebarHeaderBtn">
-      <span id="serverNameLabel">Direct Messages</span>
-      <span style="font-size: 12px; color: #949ba4;">▼</span>
+      <span id="serverNameLabel">Direct Messages</span><span style="font-size: 12px; color: #949ba4;">▼</span>
     </div>
-    
-    <div class="channel-list">
-      <div id="channelsSection"></div>
-    </div>
+    <div class="channel-list"><div id="channelsSection"></div></div>
 
     <!-- Bottom User Profile Panel -->
     <div class="user-profile-panel" id="myProfilePanel">
@@ -470,68 +392,54 @@
   <div id="chat">
     <div class="chat-header">
       <div class="header-left" id="headerTitleClickArea">
-        <div id="headerAvatarContainer" class="header-avatar-container hidden">
-          <div id="headerAvatar" class="header-avatar"></div>
-        </div>
+        <div id="headerAvatarContainer" class="header-avatar-container hidden"><div id="headerAvatar" class="header-avatar"></div></div>
         <span class="prefix" id="headerPrefix" style="font-size:18px; color:#80848e;">#</span>
         <span id="headerTitle" class="header-title-text">select-a-chat</span>
       </div>
       
       <div class="header-right">
-        <button id="addPersonTopBtn" class="add-person-btn hidden">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9 0c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm9 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45v2h6v-2c0-2.25-4.04-3.5-7-3.5z"/></svg>
-          Add Person
-        </button>
+        <button id="addPersonTopBtn" class="add-person-btn hidden"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9 0c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm9 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45v2h6v-2c0-2.25-4.04-3.5-7-3.5z"/></svg>Add Person</button>
+
+        <div id="inboxBtn" class="icon-btn" title="Inbox">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+          </svg>
+          <div id="inboxBadge" class="inbox-badge"></div>
+        </div>
 
         <div id="toggleMemberListBtn" class="icon-btn" title="Toggle Member List">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-          </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         </div>
+      </div>
+    </div>
+
+    <!-- Dev Inbox Popup Box -->
+    <div id="inboxPopup" class="inbox-popup hidden animate-pop">
+      <div class="inbox-header">Dev Announcements</div>
+      <div class="inbox-messages" id="inboxMessagesContainer"></div>
+      <div class="inbox-input-area hidden" id="devInboxInputArea">
+        <input type="text" id="devAnnouncementInput" placeholder="Send announcement..." autocomplete="off">
       </div>
     </div>
 
     <div class="chat-content-container">
       <div id="messages"></div>
-
-      <div id="memberListPanel" class="member-list-panel hidden">
-        <div id="memberListContent"></div>
-      </div>
+      <div id="memberListPanel" class="member-list-panel hidden"><div id="memberListContent"></div></div>
     </div>
 
     <div id="bottom">
       <div id="plusMenu" class="glass-popup hidden animate-pop">
-        <button id="uploadOption" class="menu-option">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a3 3 0 0 0 6 0V5a4 4 0 0 0-8 0v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
-          Upload File
-        </button>
-        <button id="emojisOption" class="menu-option">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
-          Emoji Picker
-        </button>
+        <button id="uploadOption" class="menu-option"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a3 3 0 0 0 6 0V5a4 4 0 0 0-8 0v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg> Upload File</button>
+        <button id="emojisOption" class="menu-option"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg> Emoji Picker</button>
       </div>
 
       <input type="file" id="fileInput" class="hidden">
       <input type="file" id="pfpFileInput" accept="image/*" class="hidden">
 
-      <div id="emojiPicker" class="glass-popup hidden animate-pop" style="bottom: 80px;">
-        <div id="emojiGrid" class="emoji-grid"></div>
-      </div>
-      
-      <div id="replyBanner" class="reply-banner hidden">
-        <span>Replying to <b id="replyTargetName"></b></span>
-        <span id="closeReplyBanner" class="reply-banner-close">✕</span>
-      </div>
-
-      <div id="typingIndicator" class="typing-indicator hidden">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
-        <span id="typingText"></span>
-      </div>
-
-      <div class="input-wrapper">
-        <div id="plusBtn" class="plus-btn" title="Add">+</div>
-        <input id="message" placeholder="Message" autocomplete="off">
-      </div>
+      <div id="emojiPicker" class="glass-popup hidden animate-pop" style="bottom: 80px;"><div id="emojiGrid" class="emoji-grid"></div></div>
+      <div id="replyBanner" class="reply-banner hidden"><span>Replying to <b id="replyTargetName"></b></span><span id="closeReplyBanner" class="reply-banner-close">✕</span></div>
+      <div id="typingIndicator" class="typing-indicator hidden"><div class="typing-dots"><span></span><span></span><span></span></div><span id="typingText"></span></div>
+      <div class="input-wrapper"><div id="plusBtn" class="plus-btn" title="Add">+</div><input id="message" placeholder="Message" autocomplete="off"></div>
     </div>
   </div>
 </div>
@@ -551,7 +459,6 @@
       <input type="text" id="popoverPronounsInput" class="profile-pronouns-input" placeholder="+ Pronouns" maxlength="15">
     </div>
     <div class="profile-created-date" id="popoverCreatedDate">Member Since: --</div>
-    
     <div class="profile-divider"></div>
     <div class="profile-section-title">About Me</div>
     <textarea id="popoverBioInput" class="profile-bio-textarea hidden" placeholder="Write something about yourself..."></textarea>
@@ -559,117 +466,77 @@
   </div>
 </div>
 
-<!-- CONTEXT MENU FOR MESSAGES -->
+<!-- CONTEXT MENUS -->
 <div id="msgContextMenu" class="msg-context-menu hidden">
-  <button id="ctxReply" class="menu-option">
-    <svg width="16" height="16" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Reply
-  </button>
-  <button id="ctxEdit" class="menu-option">
-    <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Message
-  </button>
-  <button id="ctxCopy" class="menu-option">
-    <svg width="16" height="16" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy Text
-  </button>
-  <button id="ctxReact" class="menu-option">
-    <svg width="16" height="16" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg> React
-  </button>
+  <button id="ctxReply" class="menu-option"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Reply</button>
+  <button id="ctxEdit" class="menu-option"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Message</button>
+  <button id="ctxCopy" class="menu-option"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy Text</button>
+  <button id="ctxReact" class="menu-option"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg> React</button>
   <div id="reactEmojiBar" class="emoji-grid hidden" style="background: #1e1f22; border-radius: 8px; margin-top: 4px;"></div>
 </div>
-
-<!-- MEMBER ROLE & SERVER MANAGEMENT MENU -->
 <div id="memberRoleMenu" class="msg-context-menu hidden">
   <button id="roleMakeCoCreator" class="menu-option">Make Co-Creator</button>
   <button id="roleMakeEditor" class="menu-option">Make Editor</button>
   <button id="roleMakeMember" class="menu-option">Make Member</button>
   <button id="roleRemove" class="menu-option" style="color:#f23f43;">Remove from Server</button>
 </div>
-
-<div id="serverContextMenu" class="msg-context-menu hidden">
-  <button id="btnDeleteServerCtx" class="menu-option" style="color:#f23f43;">Delete Server</button>
-</div>
+<div id="serverContextMenu" class="msg-context-menu hidden"><button id="btnDeleteServerCtx" class="menu-option" style="color:#f23f43;">Delete Server</button></div>
 
 <!-- MODALS -->
 <div id="createServerModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
     <h3>Customize Your Server</h3>
     <p>Give your new server a personality with a name and an icon. You can always change it later.</p>
-    
     <div class="upload-circle" id="serverIconUploadBtn">📷<br>Upload</div>
     <input type="file" id="serverIconFileInput" accept="image/*" class="hidden">
-
     <label style="font-size:12px; color:#b5bac1; text-transform:uppercase; font-weight:700;">Server Name *</label>
     <input id="createServerNameInput" type="text" placeholder="My Awesome Server">
-    
-    <div class="modal-actions">
-      <button class="secondary" id="closeCreateServerModal">Back</button>
-      <button id="confirmCreateServerBtn">Create</button>
-    </div>
+    <div class="modal-actions"><button class="secondary" id="closeCreateServerModal">Back</button><button id="confirmCreateServerBtn">Create</button></div>
   </div>
 </div>
-
 <div id="addPersonModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
     <h3>Add Person to Server</h3>
     <p>Only Creators and Editors can invite users directly to this server.</p>
     <label style="font-size:12px; color:#b5bac1; text-transform:uppercase;">Enter Username</label>
     <input id="addPersonUsernameInput" type="text" placeholder="Username...">
-    <div class="modal-actions">
-      <button class="secondary" onclick="document.getElementById('addPersonModal').classList.add('hidden')">Cancel</button>
-      <button id="confirmAddPersonBtn">Add Person</button>
-    </div>
+    <div class="modal-actions"><button class="secondary" onclick="document.getElementById('addPersonModal').classList.add('hidden')">Cancel</button><button id="confirmAddPersonBtn">Add Person</button></div>
   </div>
 </div>
-
 <div id="createGroupModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
     <h3>Create Group Chat</h3>
     <p>Select multiple users to start a group direct message.</p>
     <div id="groupUserSelectList" class="user-select-list"></div>
-    <div class="modal-actions">
-      <button class="secondary" onclick="document.getElementById('createGroupModal').classList.add('hidden')">Cancel</button>
-      <button id="confirmCreateGroupBtn">Create Group</button>
-    </div>
+    <div class="modal-actions"><button class="secondary" onclick="document.getElementById('createGroupModal').classList.add('hidden')">Cancel</button><button id="confirmCreateGroupBtn">Create Group</button></div>
   </div>
 </div>
-
 <div id="groupDetailsModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
     <h3>Group Members</h3>
     <div id="groupMembersDetailList" class="user-select-list"></div>
-    <div class="modal-actions" style="justify-content: flex-end;">
-      <button onclick="document.getElementById('groupDetailsModal').classList.add('hidden')">Close</button>
-    </div>
+    <div class="modal-actions" style="justify-content: flex-end;"><button onclick="document.getElementById('groupDetailsModal').classList.add('hidden')">Close</button></div>
   </div>
 </div>
-
 <div id="newDmModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
     <h3>Direct Message</h3>
     <label style="font-size:12px; color:#b5bac1; text-transform:uppercase;">Select User</label>
     <input id="newDmUsernameInput" type="text" placeholder="Filter username...">
     <div id="userSelectList" class="user-select-list"></div>
-    <div class="modal-actions">
-      <button class="secondary" onclick="document.getElementById('newDmModal').classList.add('hidden')">Cancel</button>
-      <button id="confirmStartDmBtn">Start Conversation</button>
-    </div>
+    <div class="modal-actions"><button class="secondary" onclick="document.getElementById('newDmModal').classList.add('hidden')">Cancel</button><button id="confirmStartDmBtn">Start Conversation</button></div>
   </div>
 </div>
-
 <div id="newThreadModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
     <h3>Create Channel</h3>
     <label style="font-size:12px; color:#b5bac1; text-transform:uppercase;">Channel Name</label>
     <input id="newThreadInput" type="text" placeholder="e.g. general">
-    
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
       <input type="checkbox" id="isEditorOnlyChannel">
       <label for="isEditorOnlyChannel" style="margin:0; text-transform:none; font-size:13px; color:#dbdee1;">Editor-only channel (Public read-only, Editor/Creator post)</label>
     </div>
-
-    <div class="modal-actions">
-      <button class="secondary" onclick="document.getElementById('newThreadModal').classList.add('hidden')">Cancel</button>
-      <button id="confirmThreadBtn">Create Channel</button>
-    </div>
+    <div class="modal-actions"><button class="secondary" onclick="document.getElementById('newThreadModal').classList.add('hidden')">Cancel</button><button id="confirmThreadBtn">Create Channel</button></div>
   </div>
 </div>
 
@@ -774,6 +641,25 @@
   const memberRoleMenu = document.getElementById("memberRoleMenu");
   const serverContextMenu = document.getElementById("serverContextMenu");
 
+  // Inbox & Dev Features
+  const inboxBtn = document.getElementById("inboxBtn");
+  const inboxPopup = document.getElementById("inboxPopup");
+  const devInboxInputArea = document.getElementById("devInboxInputArea");
+  const devAnnouncementInput = document.getElementById("devAnnouncementInput");
+  const inboxMessagesContainer = document.getElementById("inboxMessagesContainer");
+  const inboxBadge = document.getElementById("inboxBadge");
+
+  // Helper for identifying Devs
+  function isDev(user) {
+    if (!user) return false;
+    const lower = user.toLowerCase();
+    return lower === "speezely" || lower === "$@g3";
+  }
+
+  function getDevBadgeHTML(user) {
+    return isDev(user) ? '<span class="dev-badge" title="Developer">DEV</span>' : '';
+  }
+
   // Populate Emojis
   EMOJIS.forEach(emoji => {
     const btn = document.createElement("button");
@@ -819,7 +705,8 @@
       const ch = server && server.channels ? server.channels[currentContext.id] : null;
       if (ch && ch.isEditorOnly) {
         const myRole = getUserServerRole(currentServerId, username);
-        if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor') {
+        // Special Dev bypass for file uploads in restricted channels
+        if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
           alert("Only Editors and Creators can upload files to this channel.");
           fileInput.value = "";
           return;
@@ -879,6 +766,35 @@
     renderMemberList();
   };
 
+  inboxBtn.onclick = (e) => {
+    e.stopPropagation();
+    inboxPopup.classList.toggle("hidden");
+    inboxBadge.style.display = "none";
+    if (isDev(username)) {
+      devInboxInputArea.classList.remove("hidden");
+    }
+  };
+
+  inboxPopup.onclick = (e) => e.stopPropagation();
+
+  devAnnouncementInput.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter" && !e.repeat) {
+      e.preventDefault();
+      const text = devAnnouncementInput.value.trim();
+      if (!text || !isDev(username)) return;
+      devAnnouncementInput.value = "";
+      try {
+        await push(ref(db, 'announcements'), {
+          username: username,
+          message: text,
+          created_at: new Date().toISOString()
+        });
+      } catch (err) {
+        alert("Failed to send announcement.");
+      }
+    }
+  });
+
   document.getElementById("myProfilePanel").onclick = (e) => {
     e.stopPropagation();
     openProfileCard(username);
@@ -922,6 +838,7 @@
     profilePopover.classList.add("hidden");
     memberRoleMenu.classList.add("hidden");
     serverContextMenu.classList.add("hidden");
+    inboxPopup.classList.add("hidden");
   });
 
   profilePopover.addEventListener("click", (e) => e.stopPropagation());
@@ -976,7 +893,7 @@
     const myStatusRef = ref(db, `status/${sanitizeUsername}`);
     set(myStatusRef, "online");
 
-    document.getElementById("myDisplayUsername").textContent = username;
+    document.getElementById("myDisplayUsername").innerHTML = `${username} ${getDevBadgeHTML(username)}`;
     document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
 
     loginContainerEl.classList.add("hidden");
@@ -1053,6 +970,25 @@
     onValue(ref(db, 'typing'), (snapshot) => {
       serverTypingMap = snapshot.val() || {};
       renderTypingIndicator();
+    });
+
+    onValue(ref(db, 'announcements'), (snapshot) => {
+      const data = snapshot.val();
+      inboxMessagesContainer.innerHTML = "";
+      if (data) {
+        if(inboxPopup.classList.contains("hidden")) {
+          inboxBadge.style.display = "block";
+        }
+        Object.values(data).sort((a,b) => new Date(a.created_at) - new Date(b.created_at)).forEach(ann => {
+          const div = document.createElement("div");
+          div.className = "announcement";
+          const timeStr = new Date(ann.created_at).toLocaleDateString() + " at " + new Date(ann.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+          div.innerHTML = `<span class="announcement-time">${timeStr} - ${escapeHtml(ann.username)}</span>${escapeHtml(ann.message)}`;
+          inboxMessagesContainer.prepend(div);
+        });
+      } else {
+        inboxMessagesContainer.innerHTML = "<div style='color: #80848e; text-align: center; margin-top: 20px; font-size: 13px;'>No new announcements.</div>";
+      }
     });
   }
 
@@ -1160,7 +1096,8 @@
       const groupListDiv = document.createElement("div");
       Object.entries(activeGroups).forEach(([gId, group]) => {
         const members = group.members || [];
-        if (members.includes(username)) {
+        // Dev Omniscient Override for viewing Groups
+        if (members.includes(username) || isDev(username)) {
           const formattedTitle = formatGroupName(members);
           const item = document.createElement("div");
           item.className = `channel-item ${currentContext.type === 'group' && currentContext.id === gId ? 'active' : ''}`;
@@ -1230,7 +1167,8 @@
 
     Object.entries(activeServers).forEach(([sId, server]) => {
       const myRole = getUserServerRole(sId, username);
-      if (!myRole) return;
+      // Dev Omniscient Override for Server Viewer
+      if (!myRole && !isDev(username)) return;
 
       const iconDiv = document.createElement("div");
       iconDiv.id = `server_icon_${sId}`;
@@ -1282,7 +1220,8 @@
 
       if (ch && ch.isEditorOnly) {
         const myRole = getUserServerRole(currentServerId, username);
-        if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor') {
+        // Special Dev bypass logic for typing in editor channels
+        if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
           messageInput.disabled = true;
           messageInput.placeholder = "Only Editors and Creators can type in this channel";
         }
@@ -1427,7 +1366,7 @@
           <div class="message-content">
             ${replyHtml}
             <div class="message-header">
-              <b onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)}</b>
+              <b onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)} ${getDevBadgeHTML(msgUser)}</b>
               <span class="time">${escapeHtml(time)}</span>
             </div>
             <span class="text" id="text_${msgId}">${formatMessageContent(msg.message)}</span><span id="edited_${msgId}">${editedLabel}</span>
@@ -1565,7 +1504,7 @@
           ${initial}
           <div class="status-dot ${status}"></div>
         </div>
-        <span class="member-name">${escapeHtml(uName)}</span>
+        <span class="member-name">${escapeHtml(uName)} ${getDevBadgeHTML(uName)}</span>
         ${badgeHtml}
       `;
 
@@ -1771,7 +1710,7 @@
           ${initial}
           <div class="status-dot ${status}"></div>
         </div>
-        <span style="flex:1;">${escapeHtml(mUser)}</span>
+        <span style="flex:1;">${escapeHtml(mUser)} ${getDevBadgeHTML(mUser)}</span>
         <span style="font-size:12px; color:#949ba4;">${status}</span>
       `;
 
@@ -1961,7 +1900,7 @@
     const profile = userProfiles[targetUser.toLowerCase()] || { username: targetUser };
     const status = getUserStatus(targetUser);
 
-    popoverUsername.textContent = profile.username || targetUser;
+    popoverUsername.innerHTML = `${escapeHtml(profile.username || targetUser)} ${getDevBadgeHTML(targetUser)}`;
     document.getElementById("popoverStatusDot").className = `status-dot-large ${status}`;
 
     if (profile.created_at) {
@@ -2033,113 +1972,73 @@
     }
   };
 
+  function updateMyProfileUI() {
+    const profile = userProfiles[username.toLowerCase()] || {};
+    document.getElementById("myDisplayUsername").innerHTML = `${escapeHtml(username)} ${getDevBadgeHTML(username)}`;
+    document.getElementById("myDisplayPronouns").textContent = profile.pronouns || "Online";
+
+    if (profile.avatar_url) {
+      document.getElementById("myAvatarInitial").textContent = "";
+      document.getElementById("myAvatarInitial").parentElement.style.backgroundImage = `url("${profile.avatar_url}")`;
+    } else {
+      document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
+      document.getElementById("myAvatarInitial").parentElement.style.backgroundImage = "none";
+    }
+    renderSidebarChannels();
+  }
+
   async function saveProfileChanges(changes) {
     const sanitizeUsername = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    await update(ref(db, `users/${sanitizeUsername}`), changes);
-  }
-
-  function updateMyProfileUI() {
-    const myProfile = userProfiles[username.toLowerCase()];
-    if (!myProfile) return;
-    const myAvatarEl = document.getElementById("myAvatarInitial");
-    if (myProfile.avatar_url) {
-      myAvatarEl.style.backgroundImage = `url("${myProfile.avatar_url}")`;
-      myAvatarEl.textContent = "";
-    } else {
-      myAvatarEl.style.backgroundImage = "none";
-      myAvatarEl.textContent = username.charAt(0).toUpperCase();
+    try {
+      await update(ref(db, `users/${sanitizeUsername}`), changes);
+    } catch (err) {
+      alert("Failed to save profile changes.");
     }
-    document.getElementById("myDisplayPronouns").textContent = myProfile.pronouns || "Online";
   }
 
-  /* TYPING SIGNALS */
-  function renderTypingIndicator() {
-    const roomKey = getCurrentTargetDm().replace(/[.#$/\[\]]/g, "_");
-    const typingUsersInRoom = serverTypingMap[roomKey] || {};
-    const mySanitizedKey = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    const otherTypingUsers = Object.keys(typingUsersInRoom).filter(u => u !== mySanitizedKey && typingUsersInRoom[u]);
-
-    if (otherTypingUsers.length === 0) {
-      document.getElementById("typingIndicator").classList.add("hidden");
-      return;
-    }
-
-    let text = "";
-    if (otherTypingUsers.length === 1) text = `<b>${escapeHtml(otherTypingUsers[0])}</b> is typing...`;
-    else if (otherTypingUsers.length === 2) text = `<b>${escapeHtml(otherTypingUsers[0])}</b> and <b>${escapeHtml(otherTypingUsers[1])}</b> are typing...`;
-    else text = `Several people are typing...`;
-
-    document.getElementById("typingText").innerHTML = text;
-    document.getElementById("typingIndicator").classList.remove("hidden");
-  }
-
-  function sendTypingSignal(isTyping) {
-    if (!username) return;
-    const roomKey = getCurrentTargetDm().replace(/[.#$/\[\]]/g, "_");
-    const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    set(ref(db, `typing/${roomKey}/${mySanitized}`), isTyping);
-  }
-
+  /* TYPING INDICATORS */
   messageInput.addEventListener("input", () => {
     const now = Date.now();
     if (now - lastTypingSentTime > 3000) {
-      lastTypingSentTime = now;
       sendTypingSignal(true);
+      lastTypingSentTime = now;
+      if (typingTimeout) clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => sendTypingSignal(false), 5000);
     }
-    if (typingTimeout) clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => sendTypingSignal(false), 3000);
   });
 
-  /* USER SELECT LIST IN DM MODAL */
-  function populateUserSelectList() {
-    const listEl = document.getElementById("userSelectList");
-    listEl.innerHTML = "";
-    const knownUsers = Object.keys(userProfiles).filter(u => u.toLowerCase() !== username.toLowerCase());
-
-    if (knownUsers.length === 0) {
-      listEl.innerHTML = `<div style="color: #949ba4; font-size: 13px; padding: 12px; text-align: center;">No users found. Register another user in a separate tab to test!</div>`;
-      return;
-    }
-
-    knownUsers.forEach(u => {
-      const item = document.createElement("div");
-      item.className = "user-select-item";
-      item.innerHTML = `<span>${escapeHtml(u)}</span>`;
-      item.onclick = () => {
-        activeDms.add(u);
-        document.getElementById("newDmModal").classList.add("hidden");
-        switchContext('dm', u);
-      };
-      listEl.appendChild(item);
-    });
+  async function sendTypingSignal(isTyping) {
+    if (!username) return;
+    const target = getCurrentTargetDm();
+    const sanitizeUser = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const tRef = ref(db, `typing/${target}/${sanitizeUser}`);
+    try {
+      if (isTyping) await set(tRef, username);
+      else await remove(tRef);
+    } catch (err) {}
   }
 
-  document.getElementById("confirmStartDmBtn").onclick = () => {
-    const target = document.getElementById("newDmUsernameInput").value.trim();
-    if (!target) return alert("Enter a username.");
-    activeDms.add(target);
-    document.getElementById("newDmModal").classList.add("hidden");
-    switchContext('dm', target);
-  };
+  function renderTypingIndicator() {
+    const target = getCurrentTargetDm();
+    const typingUsers = serverTypingMap[target] || {};
+    
+    let typists = [];
+    Object.entries(typingUsers).forEach(([sUser, rawUser]) => {
+      if (sUser !== username.toLowerCase().replace(/[.#$/\[\]]/g, "_")) typists.push(rawUser);
+    });
 
-  document.getElementById("confirmThreadBtn").onclick = async () => {
-    const chName = document.getElementById("newThreadInput").value.trim().toLowerCase().replace(/\s+/g, "-");
-    const isEditorOnly = document.getElementById("isEditorOnlyChannel").checked;
-    if (!chName || !currentServerId) return;
+    const indicator = document.getElementById("typingIndicator");
+    const typingText = document.getElementById("typingText");
 
-    try {
-      await set(ref(db, `servers/${currentServerId}/channels/${chName}`), {
-        name: chName,
-        isEditorOnly: isEditorOnly
-      });
-      document.getElementById("newThreadModal").classList.add("hidden");
-      switchContext('channel', chName);
-    } catch (err) {
-      alert("Failed to create channel.");
+    if (typists.length === 0) {
+      indicator.classList.add("hidden");
+    } else {
+      indicator.classList.remove("hidden");
+      if (typists.length === 1) typingText.textContent = `${typists[0]} is typing...`;
+      else if (typists.length === 2) typingText.textContent = `${typists[0]} and ${typists[1]} are typing...`;
+      else typingText.textContent = `Several people are typing...`;
     }
-  };
+  }
 </script>
 </body>
 </html>
-
-
