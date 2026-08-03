@@ -511,11 +511,6 @@
           Settings
         </button>
 
-        <button id="notesBtn" class="add-person-btn" style="background:#4e5058;" title="Your private notes">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Notes
-        </button>
-
         <div id="inboxBtn" class="icon-btn" title="Inbox">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
@@ -583,14 +578,17 @@
   </div>
 </div>
 
-<div id="callNotificationBanner" class="dm-notification-banner hidden animate-pop">
-  <div class="dm-notif-avatar" id="callNotifAvatar">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+<div id="callNotificationBanner" class="dm-notification-banner hidden animate-pop" style="justify-content: space-between; align-items: center; width: 340px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <div class="dm-notif-avatar" id="callNotifAvatar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+    </div>
+    <div>
+      <div class="dm-notif-sender" id="callNotifSender"></div>
+      <div class="dm-notif-message">Incoming video call</div>
+    </div>
   </div>
-  <div>
-    <div class="dm-notif-sender" id="callNotifSender"></div>
-    <div class="dm-notif-message">Incoming video call</div>
-  </div>
+  <button id="callNotifJoinBtn" style="background: #23a55a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 600; cursor: pointer;">Join</button>
 </div>
 
 <div id="profilePopover" class="profile-popover hidden animate-pop">
@@ -791,6 +789,7 @@
   let username = "";
   let userPassword = "";
   let isRegisterMode = false;
+  let hasBooted = false;
 
   let currentView = 'home';
   let currentServerId = null;
@@ -915,7 +914,6 @@
   const inboxBadge = document.getElementById("inboxBadge");
   
   // Notes, invites, welcome, notification elements
-  const notesBtn = document.getElementById("notesBtn");
   const dmNotificationBanner = document.getElementById("dmNotificationBanner");
   const dmNotifAvatar = document.getElementById("dmNotifAvatar");
   const dmNotifSender = document.getElementById("dmNotifSender");
@@ -1014,7 +1012,7 @@
     reactEmojiBar.appendChild(reactBtn);
   });
 
-  // Populate Banner Color Swatches (built once; selection state applied when profile opens)
+  // Populate Banner Color Swatches
   BANNER_COLORS.forEach(color => {
     const swatch = document.createElement("div");
     swatch.className = "banner-color-swatch";
@@ -1279,9 +1277,9 @@
     appEl.classList.remove("hidden");
     appEl.classList.add("animate-pop");
 
+    hasBooted = false;
     initFirebaseListeners();
 
-    // Every load lands the user directly in their Notes to Self DM
     currentView = 'home';
     currentServerId = null;
     document.querySelectorAll(".server-icon").forEach(el => el.classList.remove("active"));
@@ -1289,8 +1287,6 @@
     document.getElementById("serverNameLabel").textContent = "Direct Messages";
     document.getElementById("addPersonTopBtn").classList.add("hidden");
     document.getElementById("serverSettingsBtn").classList.add("hidden");
-    activeDms.add(username);
-    switchContext('dm', username);
 
     showWelcomeModal();
   };
@@ -1336,9 +1332,6 @@
   const CALL_ICON_MUTED = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#b5bac1"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
   const CALL_ICON_GREEN = `<svg width="20" height="20" viewBox="0 0 24 24" fill="#23a55a"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
 
-  // Renders the current phase of a call as an inline widget. This is called both
-  // at initial message render time AND every time the call's Firebase status
-  // changes, so a single chat message morphs through all 3 phases in place.
   function renderCallWidget(callId, isOwn) {
     const call = allCalls[callId];
     if (!call) {
@@ -1383,8 +1376,6 @@
     return `<div class="chat-file-box" data-call-id="${escapeHtml(callId)}" data-own="${isOwn ? '1' : '0'}" style="border-color:${colors.border}; background:${colors.bg};">${renderCallWidget(callId, isOwn)}</div>`;
   }
 
-  // Re-renders every call message currently in the DOM whenever call state changes,
-  // instead of tearing down and re-creating chat messages.
   function refreshAllCallMessages() {
     document.querySelectorAll('[data-call-id]').forEach(el => {
       const callId = el.dataset.callId;
@@ -1428,10 +1419,13 @@
   }
 
   function showCallNotification(caller, callId) {
-    callNotifSender.textContent = caller;
-    callNotificationBanner.onclick = () => {
+    callNotifSender.textContent = `Call from ${caller}`;
+    const joinBtn = document.getElementById("callNotifJoinBtn");
+    
+    const joinAction = (e) => {
+      if (e) e.stopPropagation();
       callNotificationBanner.classList.add("hidden");
-      activeDms.add(caller);
+      activeDms.add(caller.toLowerCase());
       currentView = 'home';
       currentServerId = null;
       document.querySelectorAll(".server-icon").forEach(el => el.classList.remove("active"));
@@ -1440,15 +1434,20 @@
       document.getElementById("addPersonTopBtn").classList.add("hidden");
       document.getElementById("serverSettingsBtn").classList.add("hidden");
       switchContext('dm', caller);
+      acceptCall(callId);
     };
+
+    callNotificationBanner.onclick = joinAction;
+    if (joinBtn) {
+      joinBtn.onclick = joinAction;
+    }
+
     callNotificationBanner.classList.remove("hidden");
     if (callNotifTimeout) clearTimeout(callNotifTimeout);
-    callNotifTimeout = setTimeout(() => callNotificationBanner.classList.add("hidden"), 8000);
+    callNotifTimeout = setTimeout(() => callNotificationBanner.classList.add("hidden"), 15000);
     if (document.hidden || !document.hasFocus()) playNotificationSound();
   }
 
-  // Accepting a call: guarded against double-clicks / stale "Join?" buttons and
-  // against accepting while another call is already active.
   async function acceptCall(callId) {
     const call = allCalls[callId];
     if (!call || call.status !== 'ringing') return;
@@ -1460,6 +1459,32 @@
     } finally {
       acceptingCallIds.delete(callId);
     }
+  }
+
+  function bootToFirstAvailableDm() {
+    const cleanDms = Array.from(activeDms).filter(u => u.toLowerCase() !== username.toLowerCase());
+    if (cleanDms.length > 0) {
+      const targetLower = cleanDms[0];
+      const targetProf = userProfiles[targetLower];
+      const targetName = targetProf ? (targetProf.username || targetLower) : targetLower;
+      switchContext('dm', targetName);
+      return;
+    }
+    const otherUsers = Object.keys(userProfiles).filter(u => u.toLowerCase() !== username.toLowerCase());
+    if (otherUsers.length > 0) {
+      const targetLower = otherUsers[0];
+      const targetProf = userProfiles[targetLower];
+      const targetName = targetProf ? (targetProf.username || targetLower) : targetLower;
+      activeDms.add(targetLower);
+      switchContext('dm', targetName);
+      return;
+    }
+    
+    currentContext = { type: 'dm', id: '' };
+    document.getElementById("headerPrefix").textContent = "@";
+    document.getElementById("headerTitle").textContent = "Direct Messages";
+    messageInput.placeholder = "Select a user to chat";
+    messagesEl.innerHTML = "";
   }
 
   /* ===================== FIREBASE LISTENERS ===================== */
@@ -1497,8 +1522,6 @@
               const isDmMsg = target.includes(":") && !target.startsWith("server:") && !target.startsWith("group:");
               if (isDmMsg) {
                 const viewingThisDm = currentContext.type === 'dm' && currentContext.id.toLowerCase() === msg.username.toLowerCase();
-                // Don't fire the generic DM banner for video call messages -- the
-                // dedicated call banner (driven by the 'calls' listener) handles those.
                 const isCallMsg = typeof msg.message === 'string' && msg.message.startsWith('[VIDEOCALL:');
                 if (!viewingThisDm && !isCallMsg) showDmNotification(msg.username, msg.message || "");
               }
@@ -1522,6 +1545,10 @@
           if (u.username) userProfiles[u.username.toLowerCase()] = u;
         });
         updateMyProfileUI();
+      }
+      if (!hasBooted && username) {
+        hasBooted = true;
+        bootToFirstAvailableDm();
       }
     });
 
@@ -1562,9 +1589,6 @@
       }
     });
 
-    // Single global listener for ALL call state (ringing/active/ended). This is
-    // the only Firebase subscription used to drive call message widgets, the
-    // video modal header, and the incoming-call banner -- no per-call polling.
     onValue(ref(db, 'calls'), (snapshot) => {
       const data = snapshot.val() || {};
       allCalls = data;
@@ -1584,7 +1608,6 @@
       });
       if (!callsInitialized) callsInitialized = true;
 
-      // If my own active call was ended remotely (or by my other tab), close the modal.
       if (activeCallId && (!data[activeCallId] || data[activeCallId].status === 'ended')) {
         endCall(false);
       }
@@ -1633,7 +1656,7 @@
     dmNotificationBanner.classList.remove("hidden");
     dmNotificationBanner.onclick = () => {
       dmNotificationBanner.classList.add("hidden");
-      activeDms.add(senderUser);
+      activeDms.add(senderUser.toLowerCase());
       currentView = 'home';
       currentServerId = null;
       document.querySelectorAll(".server-icon").forEach(el => el.classList.remove("active"));
@@ -1648,20 +1671,6 @@
     dmNotifTimeout = setTimeout(() => dmNotificationBanner.classList.add("hidden"), 5000);
   }
 
-  /* NOTES BUTTON (self DM) */
-  notesBtn.onclick = (e) => {
-    e.stopPropagation();
-    currentView = 'home';
-    currentServerId = null;
-    document.querySelectorAll(".server-icon").forEach(el => el.classList.remove("active"));
-    document.getElementById("homeBtn").classList.add("active");
-    document.getElementById("serverNameLabel").textContent = "Direct Messages";
-    document.getElementById("addPersonTopBtn").classList.add("hidden");
-    document.getElementById("serverSettingsBtn").classList.add("hidden");
-    activeDms.add(username);
-    switchContext('dm', username);
-  };
-
   /* WELCOME MODAL */
   function showWelcomeModal() {
     welcomeModalTitle.textContent = `Welcome ${username} to Accordian!`;
@@ -1669,7 +1678,7 @@
   }
   welcomeModalCloseBtn.onclick = () => welcomeModal.classList.add("hidden");
 
-  /* SERVER SETTINGS (icon, name, and dev-only force-join toggle) */
+  /* SERVER SETTINGS */
   function openServerSettingsModal(serverId) {
     const server = activeServers[serverId];
     if (!server) return;
@@ -1747,7 +1756,7 @@
     }
   };
 
-  /* FORCED SERVER JOIN PROMPT (shown to all non-member users of any dev-forced server) */
+  /* FORCED SERVER JOIN PROMPT */
   function getPendingForcedServers() {
     return Object.entries(activeServers)
       .filter(([sId, s]) => s && s.forced && !getUserServerRole(sId, username))
@@ -1781,7 +1790,7 @@
     checkForcedServers();
   };
 
-  /* SERVER INVITES (sent as a chat message card) */
+  /* SERVER INVITES */
   function openSendInviteModal(serverId) {
     const server = activeServers[serverId];
     if (!server) return;
@@ -1824,8 +1833,6 @@
     }
   }
 
-  // Delegate clicks on server-invite "Join Server" buttons AND call action buttons
-  // rendered inside chat messages.
   messagesEl.addEventListener("click", async (e) => {
     const joinCallBtn = e.target.closest('[data-action="join-call"]');
     if (joinCallBtn) {
@@ -1873,15 +1880,7 @@
     document.getElementById("serverSettingsBtn").classList.add("hidden");
     
     renderSidebarChannels();
-    if (activeDms.size > 0) {
-      switchContext('dm', Array.from(activeDms)[0]);
-    } else {
-      currentContext = { type: 'dm', id: '' };
-      document.getElementById("headerPrefix").textContent = "@";
-      document.getElementById("headerTitle").textContent = "Direct Messages";
-      messageInput.placeholder = "Select a user to chat";
-      messagesEl.innerHTML = "";
-    }
+    bootToFirstAvailableDm();
   }
 
   function switchToServerView(serverId) {
@@ -1942,22 +1941,23 @@
       container.appendChild(dmSectionHeader);
 
       const dmListDiv = document.createElement("div");
-      activeDms.forEach(otherUser => {
+      activeDms.forEach(otherUserLower => {
+        if (otherUserLower.toLowerCase() === username.toLowerCase()) return;
+        const profile = userProfiles[otherUserLower] || {};
+        const otherUser = profile.username || otherUserLower;
+
         const item = document.createElement("div");
-        item.className = `channel-item ${currentContext.type === 'dm' && currentContext.id.toLowerCase() === otherUser.toLowerCase() ? 'active' : ''}`;
+        item.className = `channel-item ${currentContext.type === 'dm' && currentContext.id.toLowerCase() === otherUserLower ? 'active' : ''}`;
         
-        const profile = userProfiles[otherUser.toLowerCase()] || {};
         const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : '';
         const status = getUserStatus(otherUser);
-        const isSelfNote = otherUser.toLowerCase() === username.toLowerCase();
 
         item.innerHTML = `
-        
           <div class="dm-user-avatar" style="${avatarStyle}">
             ${profile.avatar_url ? '' : escapeHtml(otherUser.charAt(0).toUpperCase())}
             <div class="status-dot ${status}"></div>
           </div>
-          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${isSelfNote ? "📝 Notes to Self" : escapeHtml(otherUser)}</span>`;
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(otherUser)}</span>`;
         item.onclick = () => switchContext('dm', otherUser);
         dmListDiv.appendChild(item);
       });
@@ -2097,7 +2097,10 @@
 
     messageInput.disabled = false;
 
-    // Show Video Call Button only in DMs
+    if (type === 'dm') {
+      activeDms.add(id.toLowerCase());
+    }
+
     if (type === 'dm' && id.toLowerCase() !== username.toLowerCase()) {
       videoCallBtn.classList.remove("hidden");
     } else {
@@ -2163,10 +2166,8 @@
 
   /* ===================== WEBRTC VIDEO CALLING ===================== */
 
-  // callId: shared key under 'calls/{callId}'. isCaller: whether THIS client is
-  // the one that created the call (drives who creates the SDP offer vs answer).
   window.startWebRTC = async function(callId, isCaller) {
-    if (activeCallId) return; // never allow two simultaneous local calls
+    if (activeCallId) return; 
     activeCallId = callId;
     document.getElementById("videoCallModal").classList.remove("hidden");
     updateModalCallUI();
@@ -2176,7 +2177,7 @@
       document.getElementById("localVideo").srcObject = localStream;
     } catch (err) {
       showCustomAlert("Camera or Microphone access denied.", "Device Error");
-      endCall(isCaller); // if I was the caller and never connected, mark the call ended
+      endCall(isCaller); 
       return;
     }
 
@@ -2190,11 +2191,9 @@
       }
     };
 
-    const offerCandidates = ref(db, `calls/${callId}/offerCandidates`);
-    const answerCandidates = ref(db, `calls/${callId}/answerCandidates`);
+    const offerCandidates = ref(db, `call_signals/${callId}/offerCandidates`);
+    const answerCandidates = ref(db, `call_signals/${callId}/answerCandidates`);
 
-    // If either side disconnects mid-call (closes tab, loses network), mark the
-    // call ended for both -- idempotent, whoever fires first wins.
     onDisconnect(ref(db, `calls/${callId}/status`)).set('ended');
 
     let candidateCount = 0;
@@ -2209,9 +2208,9 @@
     if (isCaller) {
       const offerDescription = await pc.createOffer();
       await pc.setLocalDescription(offerDescription);
-      await update(ref(db, `calls/${callId}`), { offer: { sdp: offerDescription.sdp, type: offerDescription.type } });
+      await update(ref(db, `call_signals/${callId}`), { offer: { sdp: offerDescription.sdp, type: offerDescription.type } });
 
-      const unsubAnswer = onValue(ref(db, `calls/${callId}/answer`), snapshot => {
+      const unsubAnswer = onValue(ref(db, `call_signals/${callId}/answer`), snapshot => {
         const data = snapshot.val();
         if (pc && !pc.currentRemoteDescription && data) {
           pc.setRemoteDescription(new RTCSessionDescription(data));
@@ -2226,7 +2225,7 @@
       callUnsubscribes.push(unsubIce);
 
     } else {
-      const offerSnapshot = await get(ref(db, `calls/${callId}/offer`));
+      const offerSnapshot = await get(ref(db, `call_signals/${callId}/offer`));
       const offerData = offerSnapshot.val();
       if (!offerData) {
         showCustomAlert("Call no longer active or offer not found.", "Call Ended");
@@ -2238,10 +2237,10 @@
       const answerDescription = await pc.createAnswer();
       await pc.setLocalDescription(answerDescription);
 
-      // Writing the answer AND flipping status to 'active' together is what moves
-      // the shared chat message from "Incoming Video Call" into "In Call" for both sides.
+      await update(ref(db, `call_signals/${callId}`), {
+        answer: { sdp: answerDescription.sdp, type: answerDescription.type }
+      });
       await update(ref(db, `calls/${callId}`), {
-        answer: { sdp: answerDescription.sdp, type: answerDescription.type },
         status: 'active',
         started_at: new Date().toISOString()
       });
@@ -2256,8 +2255,6 @@
     updateModalCallUI();
   };
 
-  // removeFromDB: whether THIS client should write the 'ended' status (false when
-  // we're just reacting to the other side having already ended it).
   window.endCall = async function(removeFromDB = true) {
     const endingCallId = activeCallId;
     document.getElementById("videoCallModal").classList.add("hidden");
@@ -2278,13 +2275,8 @@
         if (snap.exists() && snap.val() !== 'ended') {
           await update(ref(db, `calls/${endingCallId}`), { status: 'ended', ended_at: new Date().toISOString() });
         }
-        // Clean up the bulky signaling data a few seconds later -- keeps the
-        // "Call ended · mm:ss" widget correct without leaving offer/ICE junk forever.
         setTimeout(() => {
-          remove(ref(db, `calls/${endingCallId}/offer`)).catch(() => {});
-          remove(ref(db, `calls/${endingCallId}/answer`)).catch(() => {});
-          remove(ref(db, `calls/${endingCallId}/offerCandidates`)).catch(() => {});
-          remove(ref(db, `calls/${endingCallId}/answerCandidates`)).catch(() => {});
+          remove(ref(db, `call_signals/${endingCallId}`)).catch(() => {});
         }, 4000);
       } catch (e) {}
     }
@@ -2300,9 +2292,6 @@
     startingCall = true;
 
     try {
-      // Look for any non-ended call already between us and otherUser. This is
-      // what prevents spammed "Join?" messages AND merges simultaneous calls
-      // (if they already called me, just accept theirs instead of starting a new one).
       const existingEntry = Object.entries(allCalls).find(([cId, c]) => c && c.status !== 'ended' &&
         c.caller && c.callee &&
         ((c.caller.toLowerCase() === username.toLowerCase() && c.callee.toLowerCase() === otherUser.toLowerCase()) ||
@@ -2330,7 +2319,7 @@
         return;
       }
 
-      const text = `[VIDEOCALL:${callId}]`;
+      const text = `[VIDEOCALL:callId]`;
       try {
         const msgRef = push(ref(db, 'messages'));
         await set(msgRef, { username, message: text, target_dm, reply_to: "", client_id: callId, created_at: new Date().toISOString() });
@@ -2381,7 +2370,12 @@
     const typingData = serverTypingMap[typingKey] || {};
     const sanitizedMyUser = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
 
-    const activeTypers = Object.keys(typingData).filter(u => u !== sanitizedMyUser && typingData[u]);
+    const activeTypers = Object.keys(typingData)
+      .filter(u => u !== sanitizedMyUser && typingData[u])
+      .map(u => {
+        const prof = userProfiles[u];
+        return prof ? (prof.username || u) : u;
+      });
 
     const indicatorEl = document.getElementById("typingIndicator");
     const textEl = document.getElementById("typingText");
@@ -2392,8 +2386,11 @@
         textEl.textContent = `${activeTypers[0]} is typing...`;
       } else if (activeTypers.length === 2) {
         textEl.textContent = `${activeTypers[0]} and ${activeTypers[1]} are typing...`;
+      } else if (activeTypers.length === 3) {
+        textEl.textContent = `${activeTypers[0]}, ${activeTypers[1]} and ${activeTypers[2]} are typing...`;
       } else {
-        textEl.textContent = `Several people are typing...`;
+        const remaining = activeTypers.length - 3;
+        textEl.textContent = `${activeTypers[0]}, ${activeTypers[1]}, ${activeTypers[2]} and ${remaining} other${remaining > 1 ? 's' : ''} are typing...`;
       }
     } else {
       indicatorEl.classList.add("hidden");
@@ -2414,8 +2411,12 @@
       if (target.includes(":") && !target.startsWith("server:") && !target.startsWith("group:")) {
         const parts = target.split(":");
         const myLower = username.toLowerCase();
-        if (parts[0] && parts[0].toLowerCase() === myLower) activeDms.add(parts[1]);
-        if (parts[1] && parts[1].toLowerCase() === myLower) activeDms.add(parts[0]);
+        if (parts[0] && parts[0].toLowerCase() === myLower && parts[1] && parts[1].toLowerCase() !== myLower) {
+          activeDms.add(parts[1].toLowerCase());
+        }
+        if (parts[1] && parts[1].toLowerCase() === myLower && parts[0] && parts[0].toLowerCase() !== myLower) {
+          activeDms.add(parts[0].toLowerCase());
+        }
       }
 
       if (msg.id && !msg.id.startsWith("pending_")) {
@@ -2509,8 +2510,6 @@
       } else {
         if (editingMsgId !== msgId) {
           const textEl = document.getElementById(`text_${msgId}`);
-          // Call widgets manage their own live updates via refreshAllCallMessages(),
-          // so skip clobbering them here on every unrelated message-list re-render.
           const isCallWidget = textEl && textEl.querySelector('[data-call-id]');
           if (textEl && !isCallWidget && textEl.innerHTML !== formatMessageContent(msg.message, isOwnMessage)) {
             textEl.innerHTML = formatMessageContent(msg.message, isOwnMessage);
@@ -2785,7 +2784,6 @@
       return showCustomAlert("Only Creators, Co-Creators, and Editors can add people to this server!", "Permission Denied");
     }
     
-    // VALIDATION: Check if user exists
     const targetLower = targetUser.toLowerCase();
     const userExists = Object.keys(userProfiles).some(u => u.toLowerCase() === targetLower);
     if (!userExists) {
@@ -2907,7 +2905,6 @@
         const newUser = document.getElementById("groupAddUserInput").value.trim();
         if (!newUser) return;
         
-        // VALIDATE: Check if user exists before adding to group
         const targetLower = newUser.toLowerCase();
         const userExists = Object.keys(userProfiles).some(u => u.toLowerCase() === targetLower);
         if (!userExists) {
@@ -3200,9 +3197,6 @@
     profilePopover.classList.remove("hidden");
   }
 
-  // Expose to window: this is a `type="module"` script, so top-level function
-  // declarations are scoped to the module and are NOT visible to inline
-  // onclick="..." HTML attributes (which execute in the global scope).
   window.openProfileCard = openProfileCard;
 
   document.getElementById("pfpFileInput").onchange = (e) => {
@@ -3312,4 +3306,3 @@
 </script>
 </body>
 </html>
-
