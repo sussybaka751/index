@@ -78,7 +78,8 @@
 
   /* Inline field errors */
   .field-error {
-    color: #f23f43; font-size: 13px; font-weight: 500; margin-top: 6px; line-height: 1.3;
+    color: #f23f43;
+    font-size: 13px; font-weight: 500; margin-top: 6px; line-height: 1.3;
   }
 
   .login-btn {
@@ -89,7 +90,8 @@
     display: flex; align-items: center; justify-content: center; gap: 8px;
   }
   .login-btn:hover { background: #4752c4; }
-  .auth-toggle { margin-top: 16px; font-size: 14px; color: #949ba4; text-align: left; }
+  .auth-toggle { margin-top: 16px;
+    font-size: 14px; color: #949ba4; text-align: left; }
   .auth-toggle a { color: #00a8fc; text-decoration: none; cursor: pointer; font-weight: 500; }
   .auth-toggle a:hover { text-decoration: underline; }
 
@@ -104,13 +106,15 @@
   }
   .server-icon {
     width: 48px; height: 48px; border-radius: 50%; background: #313338; color: #dbdee1;
-    display: flex; align-items: center; justify-content: center; cursor: pointer; 
+    display: flex;
+    align-items: center; justify-content: center; cursor: pointer; 
     transition: all 0.2s ease; font-size: 18px; font-weight: 600; position: relative; flex-shrink: 0;
   }
   
   /* Moving White Line for Servers */
   .server-icon::before {
-    content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+    content: '';
+    position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
     width: 4px; height: 8px; background: #ffffff; border-radius: 0 4px 4px 0;
     opacity: 0; transition: height 0.2s ease, opacity 0.2s ease; pointer-events: none;
   }
@@ -168,13 +172,11 @@
   }
 
   /* Status Presence Dots */
-  .status-dot { position: absolute; bottom: -2px; right: -2px; width: 10px; height: 10px;
-    border-radius: 50%; z-index: 2; border: 2px solid #232428; }
+  .status-dot { position: absolute; bottom: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; z-index: 2; border: 2px solid #232428; }
   .status-dot.online { background: #23a55a; }
   .status-dot.offline { background: #1e1f22; border: 2.5px solid #80848e; }
   
-  .status-dot-large { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px;
-    border-radius: 50%; z-index: 5; border: 3px solid #232428; }
+  .status-dot-large { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; border-radius: 50%; z-index: 5; border: 3px solid #232428; }
   .status-dot-large.online { background: #23a55a; }
   .status-dot-large.offline { background: #1e1f22; border: 4px solid #80848e; }
 
@@ -209,6 +211,15 @@
 
   .icon-btn { cursor: pointer; color: #b5bac1; display: flex; align-items: center; justify-content: center; transition: color 0.15s; position: relative; }
   .icon-btn:hover, .icon-btn.active { color: #f2f3f5; }
+
+  /* WebRTC Video Overlay */
+  #videoCallModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(17, 18, 20, 0.95); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .video-container { position: relative; width: 80%; max-width: 1000px; max-height: 70vh; aspect-ratio: 16/9; background: #000; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.5); overflow: hidden; }
+  #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
+  #localVideo { position: absolute; bottom: 20px; right: 20px; width: 220px; aspect-ratio: 16/9; background: #232428; border-radius: 8px; border: 2px solid #5865f2; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: scaleX(-1); }
+  .call-controls { margin-top: 24px; display: flex; gap: 16px; }
+  .end-call-btn { background: #f23f43; color: white; border: none; padding: 14px 28px; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+  .end-call-btn:hover { background: #da373b; }
 
   /* Dev Inbox Popup */
   .inbox-popup {
@@ -303,8 +314,7 @@
     margin-top: 6px; max-width: 320px; font-size: 13px; color: #dbdee1; line-height: 1.5;
   }
   .server-invite-join-btn {
-    display: block; margin-top: 10px; padding: 7px 16px; background: #5865f2; color: #fff; border: none;
-    border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;
+    display: block; margin-top: 10px; padding: 7px 16px; background: #5865f2; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;
   }
   .server-invite-join-btn:hover:not(:disabled) { background: #4752c4; }
   .server-invite-join-btn:disabled { background: #4e5058; cursor: default; opacity: 0.7; }
@@ -376,10 +386,7 @@
 
   /* Banner color picker */
   .banner-color-row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .banner-color-swatch {
-    width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.06); transition: transform 0.1s, border-color 0.1s; flex-shrink: 0;
-  }
+  .banner-color-swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; box-shadow: 0 0 0 1px rgba(255,255,255,0.06); transition: transform 0.1s, border-color 0.1s; flex-shrink: 0; }
   .banner-color-swatch:hover { transform: scale(1.12); }
   .banner-color-swatch.selected { border-color: #ffffff; }
 
@@ -408,14 +415,9 @@
   #customAlertModal p { margin-top: 10px; margin-bottom: 24px; font-size: 15px; color: #dbdee1; }
   #customAlertModal .alert-icon { font-size: 40px; margin-bottom: 12px; color: #f23f43; }
 
-  /* Guidelines modal */
-  .guidelines-scrollbox {
-    flex: 1; overflow-y: auto; max-height: 46vh; background: #1e1f22; border-radius: 8px;
-    padding: 16px; font-size: 13px; line-height: 1.6; color: #dbdee1; text-align: left; margin-bottom: 16px;
-  }
-  .guidelines-scrollbox h4 { color: #f2f3f5; font-size: 14px; margin: 14px 0 6px 0; }
-  .guidelines-scrollbox h4:first-child { margin-top: 0; }
-  .guidelines-scrollbox p { margin-bottom: 8px; text-align: left; }
+  /* Server Settings modal */
+  #serverSettingsDevSection p { color: #f23f43; font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; text-align: left; }
+  #forceJoinBtn { width: 100%; }
 </style>
 </head>
 <body>
@@ -485,6 +487,17 @@
       <div class="header-right">
         <button id="addPersonTopBtn" class="add-person-btn hidden"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9 0c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm9 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45v2h6v-2c0-2.25-4.04-3.5-7-3.5z"/></svg>Add Person</button>
 
+        <div id="videoCallBtn" class="icon-btn hidden" title="Start Video Call">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+          </svg>
+        </div>
+
+        <button id="serverSettingsBtn" class="add-person-btn hidden" style="background:#4e5058;" title="Server Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94a7.14,7.14,0,0,0,.05-1,7.14,7.14,0,0,0-.05-1l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.3,7.3,0,0,0-1.7-1L14.4,2.81a.5.5,0,0,0-.5-.42h-4a.5.5,0,0,0-.5.42L9.05,5.53a7.3,7.3,0,0,0-1.7,1l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.49,11a7.14,7.14,0,0,0,0,2L2.38,14.65a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.3,7.3,0,0,0,1.7,1l.38,2.72a.5.5,0,0,0,.5.42h4a.5.5,0,0,0,.5-.42l.38-2.72a7.3,7.3,0,0,0,1.7-1l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg>
+          Settings
+        </button>
+
         <button id="notesBtn" class="add-person-btn" style="background:#4e5058;" title="Your private notes">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           Notes
@@ -530,6 +543,21 @@
       <div id="typingIndicator" class="typing-indicator hidden"><div class="typing-dots"><span></span><span></span><span></span></div><span id="typingText"></span></div>
       <div class="input-wrapper"><div id="plusBtn" class="plus-btn" title="Add">+</div><input id="message" placeholder="Message" autocomplete="off"></div>
     </div>
+  </div>
+</div>
+
+<div id="videoCallModal" class="hidden">
+  <div class="video-container">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay playsinline muted></video>
+  </div>
+  <div class="call-controls">
+    <button class="end-call-btn" onclick="endCall()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.6 13.6l-1.4 1.4L12 13.4l-3.2 3.2-1.4-1.4L10.6 12 7.4 8.8l1.4-1.4L12 10.6l3.2-3.2 1.4 1.4L13.4 12l3.2 3.2z"/>
+      </svg>
+      End Call
+    </button>
   </div>
 </div>
 
@@ -685,77 +713,40 @@
   </div>
 </div>
 
-<div id="guidelinesModal" class="modal-overlay hidden">
-  <div class="modal-box animate-pop" style="width:520px; max-height:82vh; display:flex; flex-direction:column;">
-    <h3>📜 The Accordion — Community Guidelines</h3>
-    <p style="margin-bottom:12px;">You've been automatically enrolled in <b>The Accordion</b>, our flagship server. Please read (all of) the following before you can proceed.</p>
-    <div id="guidelinesScrollBox" class="guidelines-scrollbox">
-      <h4>§1. The Golden Squeeze Rule</h4>
-      <p>Treat every member the way you'd treat a rare 1962 Hohner Morino: with respect, gentleness, and absolutely no dropping them down the stairs.</p>
-
-      <h4>§2. On the Matter of "Corn"</h4>
-      <p>No corn. We mean it. If you don't know what "corn" means in this context, congratulations, you're already following the rule perfectly. Keep it that way.</p>
-
-      <h4>§3. Cursing</h4>
-      <p>Please refrain from cursing. This rule is enforced with the same rigor as most gym New Year's resolutions, which is to say: not at all, but we have to put it here for legal reasons.</p>
-
-      <h4>§4. Bellows Etiquette</h4>
-      <p>Do not overextend your bellows (metaphorically speaking, i.e. your arguments) past their structural limits. A snapped bellows cannot be un-snapped, and neither can a group chat after 2am discourse.</p>
-
-      <h4>§5. Reed Respect</h4>
-      <p>Every accordion has reeds, and every server has "that guy." Be nice to the reeds. Be nice to that guy. Everyone is doing their best impression of a free reed aerophone.</p>
-
-      <h4>§6. Polka Consent</h4>
-      <p>Nobody may be forced to polka against their will. Polka is a right, not an obligation, unless it's Tuesday, in which case please consult §14.</p>
-
-      <h4>§7. Off-Topic Discussions</h4>
-      <p>Off-topic chat is allowed, encouraged even, so long as it does not devolve into a 400-message debate about whether the accordion or the concertina is objectively superior. (It's the accordion. This is not up for debate. See how easy that was?)</p>
-
-      <h4>§8. Impersonation</h4>
-      <p>Do not impersonate other users, staff, or famous accordion players, living or deceased. If "Weird Al" shows up in your DMs, it is not actually him. Report and move on.</p>
-
-      <h4>§9. Spam &amp; Flooding</h4>
-      <p>Please do not flood the chat with the same message on repeat. One enthusiastic "AWOOGA" is charming. Forty of them in a row is a cry for help, and also against the rules.</p>
-
-      <h4>§10. Content Standards ("Not Safe For... Accordions?")</h4>
-      <p>Keep content appropriate for a server themed entirely around a squeezebox. If in doubt, ask yourself: "would I show this to my accordion teacher?" If the answer is no, don't post it.</p>
-
-      <h4>§11. Self-Promotion</h4>
-      <p>You may share your own accordion covers, compositions, and recital disasters. You may not use this server as a billboard for unrelated products, services, or multi-level marketing schemes involving essential oils.</p>
-
-      <h4>§12. Moderator Authority</h4>
-      <p>Creators, Co-Creators, and Editors reserve the right to mute, warn, or gently escort you out of the server, much like a bouncer at a very niche polka night. Their word is final, mostly because nobody else wants the job.</p>
-
-      <h4>§13. Appeals Process</h4>
-      <p>If you disagree with a moderation decision, you may appeal by writing a strongly worded letter, folding it into the shape of a tiny accordion, and mailing it to nobody in particular, because there is no appeals process. We are a small operation.</p>
-
-      <h4>§14. Data &amp; Privacy</h4>
-      <p>We store your messages, your profile, and your questionable taste in banner colors. We do not sell your data, mostly because nobody is buying accordion enthusiast data at this time.</p>
-
-      <h4>§15. Server Invites</h4>
-      <p>Invites sent within this app are for real, actual humans you know and like. Do not spam invites to strangers, bots, or your uncle who still doesn't understand what Discord is.</p>
-
-      <h4>§16. Termination</h4>
-      <p>Accounts that violate these guidelines may be removed at the sole discretion of the server's Creators. Accounts that play the accordion beautifully may be promoted at the same discretion.</p>
-
-      <h4>§17. Governing Law</h4>
-      <p>These guidelines are governed by the laws of Vibes, and interpreted according to the ancient customs of whoever is modding at 3am.</p>
-
-      <h4>§18. Acknowledgement</h4>
-      <p>By scrolling all the way down here (yes, we made you do it, we're not sorry) you acknowledge that you have read, or at least scrolled past, all of the above, and agree to be a delightful, only-mildly-chaotic member of The Accordion.</p>
-
-      <p style="margin-top:16px; font-style:italic; color:#80848e;">You've reached the bottom. The button below should be clickable now. Thanks for actually scrolling — most people don't.</p>
+<div id="serverSettingsModal" class="modal-overlay hidden">
+  <div class="modal-box animate-pop">
+    <h3>Server Settings</h3>
+    <div style="text-align:center; margin-bottom:16px;">
+      <div class="upload-circle" id="serverSettingsIconUploadBtn">📷<br>Change Icon</div>
+      <input type="file" id="serverSettingsIconFileInput" accept="image/*" class="hidden">
     </div>
+    <label style="font-size:12px; color:#b5bac1; text-transform:uppercase; font-weight:700;">Server Name</label>
+    <input id="serverSettingsNameInput" type="text" placeholder="Server name">
+    <div id="serverSettingsDevSection" class="hidden" style="margin-top:16px; padding-top:16px; border-top:1px solid #1f2023;">
+      <p>Dev Controls</p>
+      <button id="forceJoinBtn">Force All Users to Join This Server</button>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" onclick="document.getElementById('serverSettingsModal').classList.add('hidden')">Cancel</button>
+      <button id="saveServerSettingsBtn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="forcedJoinModal" class="modal-overlay hidden">
+  <div class="modal-box animate-pop" style="text-align:center;">
+    <div class="permission-icon">📌</div>
+    <h3>Mandatory Server</h3>
+    <p id="forcedJoinText">You must join a server to continue.</p>
     <div class="modal-actions" style="justify-content: center;">
-      <button id="guidelinesAcceptBtn" disabled style="opacity:0.4; cursor:not-allowed;">Scroll down to accept</button>
+      <button id="forcedJoinAcceptBtn">Join Now</button>
     </div>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, set, get, push, update, remove, onValue, onDisconnect, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
+  import { getDatabase, ref, set, get, push, update, remove, onValue, onDisconnect, query, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
   const firebaseConfig = {
     apiKey: "AIzaSyDwbKfr5JE5PYD6cfcHhIEWvxArRxSO4jc",
     authDomain: "my-chat-app-8642f.firebaseapp.com",
@@ -802,6 +793,9 @@
   let editingMsgId = null;
 
   let tempServerIconBase64 = "";
+  let tempServerSettingsIconBase64 = "";
+  let serverSettingsTargetId = null;
+  let forcedModalCurrentServerId = null;
   let selectedGroupUsers = new Set();
   let showMemberList = false;
   let typingTimeout = null;
@@ -813,6 +807,12 @@
   let knownMessageIds = new Set();
   let dmNotifTimeout = null;
   let audioCtx = null;
+
+  // WebRTC state
+  let pc = null;
+  let localStream = null;
+  let activeCallId = null;
+  let callUnsubscribes = [];
 
   const loginContainerEl = document.getElementById("login-container");
   const appEl = document.getElementById("app");
@@ -828,7 +828,6 @@
   const passwordErrorText = document.getElementById("passwordErrorText");
   const usernameInputEl = document.getElementById("usernameInput");
   const passwordInputEl = document.getElementById("passwordInput");
-
   const plusBtn = document.getElementById("plusBtn");
   const plusMenu = document.getElementById("plusMenu");
   const uploadOption = document.getElementById("uploadOption");
@@ -873,7 +872,7 @@
   const permissionErrorModal = document.getElementById("permissionErrorModal");
   const permissionErrorText = document.getElementById("permissionErrorText");
   const permissionErrorCloseBtn = document.getElementById("permissionErrorCloseBtn");
-
+  
   // Inbox & Dev Features
   const inboxBtn = document.getElementById("inboxBtn");
   const inboxPopup = document.getElementById("inboxPopup");
@@ -881,8 +880,8 @@
   const devAnnouncementInput = document.getElementById("devAnnouncementInput");
   const inboxMessagesContainer = document.getElementById("inboxMessagesContainer");
   const inboxBadge = document.getElementById("inboxBadge");
-
-  // Notes, invites, welcome, guidelines, notification elements
+  
+  // Notes, invites, welcome, notification elements
   const notesBtn = document.getElementById("notesBtn");
   const dmNotificationBanner = document.getElementById("dmNotificationBanner");
   const dmNotifAvatar = document.getElementById("dmNotifAvatar");
@@ -893,10 +892,21 @@
   const welcomeModal = document.getElementById("welcomeModal");
   const welcomeModalTitle = document.getElementById("welcomeModalTitle");
   const welcomeModalCloseBtn = document.getElementById("welcomeModalCloseBtn");
-  const guidelinesModal = document.getElementById("guidelinesModal");
-  const guidelinesScrollBox = document.getElementById("guidelinesScrollBox");
-  const guidelinesAcceptBtn = document.getElementById("guidelinesAcceptBtn");
-  
+  const videoCallBtn = document.getElementById("videoCallBtn");
+
+  // Server Settings & Forced Join elements
+  const serverSettingsBtn = document.getElementById("serverSettingsBtn");
+  const serverSettingsModal = document.getElementById("serverSettingsModal");
+  const serverSettingsNameInput = document.getElementById("serverSettingsNameInput");
+  const serverSettingsIconUploadBtn = document.getElementById("serverSettingsIconUploadBtn");
+  const serverSettingsIconFileInput = document.getElementById("serverSettingsIconFileInput");
+  const serverSettingsDevSection = document.getElementById("serverSettingsDevSection");
+  const forceJoinBtn = document.getElementById("forceJoinBtn");
+  const saveServerSettingsBtn = document.getElementById("saveServerSettingsBtn");
+  const forcedJoinModal = document.getElementById("forcedJoinModal");
+  const forcedJoinText = document.getElementById("forcedJoinText");
+  const forcedJoinAcceptBtn = document.getElementById("forcedJoinAcceptBtn");
+
   // Custom Alert Features
   function showCustomAlert(message, title = "Alert") {
     document.getElementById("customAlertTitle").textContent = title;
@@ -945,7 +955,7 @@
   }
   usernameInputEl.addEventListener("input", clearAuthErrors);
   passwordInputEl.addEventListener("input", clearAuthErrors);
-  
+
   // Populate Emojis
   EMOJIS.forEach(emoji => {
     const btn = document.createElement("button");
@@ -963,13 +973,12 @@
     reactBtn.innerText = emoji;
     reactBtn.onclick = (e) => {
       e.stopPropagation();
-      
       if (activeContextMsg) toggleReaction(activeContextMsg, emoji);
       msgContextMenu.classList.add("hidden");
     };
     reactEmojiBar.appendChild(reactBtn);
   });
-  
+
   // Populate Banner Color Swatches (built once; selection state applied when profile opens)
   BANNER_COLORS.forEach(color => {
     const swatch = document.createElement("div");
@@ -982,7 +991,6 @@
       popoverBannerTop.style.background = color;
       bannerColorRow.querySelectorAll(".banner-color-swatch").forEach(s => s.classList.toggle("selected", s.dataset.color === color));
       if (!userProfiles[username.toLowerCase()]) userProfiles[username.toLowerCase()] = {};
-   
       userProfiles[username.toLowerCase()].banner_color = color;
       const sanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
       try {
@@ -1006,10 +1014,11 @@
     plusMenu.classList.add("hidden");
     fileInput.click();
   };
-  
+
   fileInput.onchange = () => {
     const file = fileInput.files[0];
     if (!file) return;
+
     if (currentContext.type === 'channel') {
       const server = activeServers[currentServerId];
       const ch = server && server.channels ? server.channels[currentContext.id] : null;
@@ -1033,13 +1042,12 @@
     reader.onload = async (e) => {
       const base64Data = e.target.result;
       const fileMessageText = file.type.startsWith("image/") 
-        ?
-        `[IMAGE:${base64Data}|${file.name}]` 
+        ? `[IMAGE:${base64Data}|${file.name}]` 
         : `[FILE:${base64Data}|${file.name}]`;
+
       const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
       const replyTarget = activeReplyTarget;
-      const currentReplyId = replyTarget ?
-        (replyTarget.id || replyTarget.client_id || "") : "";
+      const currentReplyId = replyTarget ? (replyTarget.id || replyTarget.client_id || "") : "";
 
       const localMsg = {
         localId, client_id: localId, username, message: fileMessageText,
@@ -1065,13 +1073,13 @@
     };
     reader.readAsDataURL(file);
   };
-  
+
   emojisOption.onclick = (e) => {
     e.stopPropagation();
     plusMenu.classList.add("hidden");
     emojiPicker.classList.remove("hidden");
   };
-  
+
   toggleMemberListBtn.onclick = () => {
     showMemberList = !showMemberList;
     toggleMemberListBtn.classList.toggle("active", showMemberList);
@@ -1079,7 +1087,7 @@
     else memberListPanel.classList.add("hidden");
     renderMemberList();
   };
-  
+
   inboxBtn.onclick = (e) => {
     e.stopPropagation();
     inboxPopup.classList.toggle("hidden");
@@ -1090,7 +1098,7 @@
   };
 
   inboxPopup.onclick = (e) => e.stopPropagation();
-  
+
   devAnnouncementInput.addEventListener("keydown", async (e) => {
     if (e.key === "Enter" && !e.repeat) {
       e.preventDefault();
@@ -1102,19 +1110,18 @@
           username: username,
           message: text,
           created_at: new Date().toISOString()
- 
         });
       } catch (err) {
         showCustomAlert("Failed to send announcement.", "Error");
       }
     }
   });
-  
+
   document.getElementById("myProfilePanel").onclick = (e) => {
     e.stopPropagation();
     openProfileCard(username);
   };
-  
+
   document.getElementById("sidebarHeaderBtn").onclick = (e) => {
     if (currentView === 'server' && currentServerId) {
       const myRole = getUserServerRole(currentServerId, username);
@@ -1126,7 +1133,7 @@
       }
     }
   };
-  
+
   document.getElementById("btnDeleteServerCtx").onclick = async () => {
     serverContextMenu.classList.add("hidden");
     if (!targetContextServerId) return;
@@ -1171,7 +1178,7 @@
     groupContextMenu.classList.add("hidden");
     inboxPopup.classList.add("hidden");
   });
-  
+
   profilePopover.addEventListener("click", (e) => e.stopPropagation());
 
   /* AUTHENTICATION */
@@ -1201,6 +1208,7 @@
 
     const sanitizeUsername = user.toLowerCase().replace(/[.#$/\[\]]/g, "_");
     const userRef = ref(db, `users/${sanitizeUsername}`);
+    
     try {
       const snapshot = await get(userRef);
       if (isRegisterMode) {
@@ -1232,23 +1240,26 @@
     document.getElementById("myDisplayUsername").innerHTML = `${username} ${getDevBadgeHTML(username)}`;
     document.getElementById("myAvatarInitial").textContent = username.charAt(0).toUpperCase();
 
-    const justRegistered = isRegisterMode;
-
     loginContainerEl.classList.add("hidden");
     appEl.classList.remove("hidden");
     appEl.classList.add("animate-pop");
 
     initFirebaseListeners();
-    switchToHomeView();
 
-    if (justRegistered) {
-      await ensureAccordionServerAndJoin(username);
-      showGuidelinesModal();
-    } else {
-      showWelcomeModal();
-    }
+    // Every load lands the user directly in their Notes to Self DM
+    currentView = 'home';
+    currentServerId = null;
+    document.querySelectorAll(".server-icon").forEach(el => el.classList.remove("active"));
+    document.getElementById("homeBtn").classList.add("active");
+    document.getElementById("serverNameLabel").textContent = "Direct Messages";
+    document.getElementById("addPersonTopBtn").classList.add("hidden");
+    document.getElementById("serverSettingsBtn").classList.add("hidden");
+    activeDms.add(username);
+    switchContext('dm', username);
+
+    showWelcomeModal();
   };
-  
+
   function getUserStatus(targetUser) {
     if (!targetUser) return 'offline';
     const sanitized = targetUser.toLowerCase().replace(/[.#$/\[\]]/g, "_");
@@ -1287,12 +1298,12 @@
         onDisconnect(myStatusRef).set("offline").then(() => set(myStatusRef, "online"));
       }
     });
-    
+
     onValue(ref(db, 'status'), (snap) => {
       userStatuses = snap.val() || {};
       updateAllPresences();
     });
-    
+
     onValue(query(ref(db, 'messages'), limitToLast(80)), (snapshot) => {
       const data = snapshot.val();
       const loadedMessages = [];
@@ -1325,7 +1336,7 @@
       cachedMessages = loadedMessages;
       renderMessages();
     });
-    
+
     onValue(ref(db, 'users'), (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -1336,24 +1347,25 @@
         updateMyProfileUI();
       }
     });
-    
+
     onValue(ref(db, 'servers'), (snapshot) => {
       activeServers = snapshot.val() || {};
       renderServerBar();
       renderSidebarChannels();
       renderMemberList();
+      checkForcedServers();
     });
-    
+
     onValue(ref(db, 'groups'), (snapshot) => {
       activeGroups = snapshot.val() || {};
       renderSidebarChannels();
     });
-    
+
     onValue(ref(db, 'typing'), (snapshot) => {
       serverTypingMap = snapshot.val() || {};
       renderTypingIndicator();
     });
-    
+
     onValue(ref(db, 'announcements'), (snapshot) => {
       const data = snapshot.val();
       inboxMessagesContainer.innerHTML = "";
@@ -1364,7 +1376,6 @@
         Object.values(data).sort((a,b) => new Date(a.created_at) - new Date(b.created_at)).forEach(ann => {
           const div = document.createElement("div");
           div.className = "announcement";
- 
           const timeStr = new Date(ann.created_at).toLocaleDateString() + " at " + new Date(ann.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
           div.innerHTML = `<span class="announcement-time">${timeStr} - ${escapeHtml(ann.username)}</span>${escapeHtml(ann.message)}`;
           inboxMessagesContainer.prepend(div);
@@ -1407,6 +1418,7 @@
     if (preview.startsWith("[IMAGE:")) preview = "📷 Sent an image";
     else if (preview.startsWith("[FILE:")) preview = "📄 Sent a file";
     else if (preview.startsWith("[SERVERINVITE:")) preview = "📨 Sent a server invite";
+    else if (preview.startsWith("[VIDEOCALL:")) preview = "📹 Started a Video Call";
     dmNotifMessage.textContent = preview;
 
     dmNotificationBanner.classList.remove("hidden");
@@ -1419,6 +1431,7 @@
       document.getElementById("homeBtn").classList.add("active");
       document.getElementById("serverNameLabel").textContent = "Direct Messages";
       document.getElementById("addPersonTopBtn").classList.add("hidden");
+      document.getElementById("serverSettingsBtn").classList.add("hidden");
       switchContext('dm', senderUser);
     };
 
@@ -1435,6 +1448,7 @@
     document.getElementById("homeBtn").classList.add("active");
     document.getElementById("serverNameLabel").textContent = "Direct Messages";
     document.getElementById("addPersonTopBtn").classList.add("hidden");
+    document.getElementById("serverSettingsBtn").classList.add("hidden");
     activeDms.add(username);
     switchContext('dm', username);
   };
@@ -1446,52 +1460,116 @@
   }
   welcomeModalCloseBtn.onclick = () => welcomeModal.classList.add("hidden");
 
-  /* THE ACCORDION AUTO-JOIN (new registrations only) */
-  async function ensureAccordionServerAndJoin(newUsername) {
-    const serverId = "the_accordion";
-    const serverRef = ref(db, `servers/${serverId}`);
-    const mySanitized = newUsername.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    try {
-      const snap = await get(serverRef);
-      if (!snap.exists()) {
-        await set(serverRef, {
-          name: "The Accordion",
-          icon: "",
-          creator: newUsername,
-          members: { [mySanitized]: { username: newUsername, role: 'creator' } },
-          channels: { "general": { name: "general", isEditorOnly: false } }
-        });
-      } else {
-        const existing = snap.val();
-        if (!existing.members || !existing.members[mySanitized]) {
-          await update(ref(db, `servers/${serverId}/members`), { [mySanitized]: { username: newUsername, role: 'member' } });
-        }
-      }
-    } catch (err) {}
+  /* SERVER SETTINGS (icon, name, and dev-only force-join toggle) */
+  function openServerSettingsModal(serverId) {
+    const server = activeServers[serverId];
+    if (!server) return;
+    serverSettingsTargetId = serverId;
+    tempServerSettingsIconBase64 = server.icon || "";
+
+    serverSettingsNameInput.value = server.name || "";
+    if (server.icon) {
+      serverSettingsIconUploadBtn.style.backgroundImage = `url("${server.icon}")`;
+      serverSettingsIconUploadBtn.style.backgroundSize = "cover";
+      serverSettingsIconUploadBtn.innerHTML = "";
+    } else {
+      serverSettingsIconUploadBtn.style.backgroundImage = "none";
+      serverSettingsIconUploadBtn.innerHTML = "📷<br>Change Icon";
+    }
+
+    serverSettingsDevSection.classList.toggle("hidden", !isDev(username));
+    if (server.forced) {
+      forceJoinBtn.textContent = "Server is Forced — Click to Unforce";
+      forceJoinBtn.style.background = "#4e5058";
+    } else {
+      forceJoinBtn.textContent = "Force All Users to Join This Server";
+      forceJoinBtn.style.background = "#f23f43";
+    }
+
+    serverSettingsModal.classList.remove("hidden");
   }
 
-  /* GUIDELINES MODAL (scroll-to-accept) */
-  function showGuidelinesModal() {
-    guidelinesScrollBox.scrollTop = 0;
-    guidelinesAcceptBtn.disabled = true;
-    guidelinesAcceptBtn.style.opacity = "0.4";
-    guidelinesAcceptBtn.style.cursor = "not-allowed";
-    guidelinesAcceptBtn.textContent = "Scroll down to accept";
-    guidelinesModal.classList.remove("hidden");
-  }
-  guidelinesScrollBox.addEventListener("scroll", () => {
-    const atBottom = guidelinesScrollBox.scrollTop + guidelinesScrollBox.clientHeight >= guidelinesScrollBox.scrollHeight - 6;
-    if (atBottom && guidelinesAcceptBtn.disabled) {
-      guidelinesAcceptBtn.disabled = false;
-      guidelinesAcceptBtn.style.opacity = "1";
-      guidelinesAcceptBtn.style.cursor = "pointer";
-      guidelinesAcceptBtn.textContent = "I Accept (reluctantly)";
+  serverSettingsBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (currentServerId) openServerSettingsModal(currentServerId);
+  };
+
+  serverSettingsIconUploadBtn.onclick = () => serverSettingsIconFileInput.click();
+  serverSettingsIconFileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      tempServerSettingsIconBase64 = ev.target.result;
+      serverSettingsIconUploadBtn.style.backgroundImage = `url("${tempServerSettingsIconBase64}")`;
+      serverSettingsIconUploadBtn.style.backgroundSize = "cover";
+      serverSettingsIconUploadBtn.innerHTML = "";
+    };
+    reader.readAsDataURL(file);
+  };
+
+  saveServerSettingsBtn.onclick = async () => {
+    if (!serverSettingsTargetId) return;
+    const newName = serverSettingsNameInput.value.trim();
+    if (!newName) return showCustomAlert("Please enter a server name.", "Hold up!");
+    
+    try {
+      await update(ref(db, `servers/${serverSettingsTargetId}`), {
+        name: newName,
+        icon: tempServerSettingsIconBase64
+      });
+      showCustomAlert("Server settings updated!", "Saved");
+      serverSettingsModal.classList.add("hidden");
+    } catch (err) {
+      showCustomAlert("Failed to update server settings.", "Error");
     }
-  });
-  guidelinesAcceptBtn.onclick = () => {
-    if (guidelinesAcceptBtn.disabled) return;
-    guidelinesModal.classList.add("hidden");
-    showWelcomeModal();
+  };
+
+  forceJoinBtn.onclick = async () => {
+    if (!isDev(username) || !serverSettingsTargetId) return;
+    const server = activeServers[serverSettingsTargetId];
+    const newForced = !(server && server.forced);
+    try {
+      await update(ref(db, `servers/${serverSettingsTargetId}`), { forced: newForced });
+      showCustomAlert(newForced ? "This server is now forced for all users!" : "This server is no longer forced.", "Updated");
+      openServerSettingsModal(serverSettingsTargetId);
+    } catch (err) {
+      showCustomAlert("Failed to update force status.", "Error");
+    }
+  };
+
+  /* FORCED SERVER JOIN PROMPT (shown to all non-member users of any dev-forced server) */
+  function getPendingForcedServers() {
+    return Object.entries(activeServers)
+      .filter(([sId, s]) => s && s.forced && !getUserServerRole(sId, username))
+      .map(([sId]) => sId);
+  }
+
+  function checkForcedServers() {
+    const pending = getPendingForcedServers();
+    if (pending.length === 0) {
+      forcedJoinModal.classList.add("hidden");
+      forcedModalCurrentServerId = null;
+      return;
+    }
+    const sId = pending[0];
+    forcedModalCurrentServerId = sId;
+    const server = activeServers[sId];
+    forcedJoinText.textContent = `You must join "${server.name}" to continue using this app.`;
+    forcedJoinModal.classList.remove("hidden");
+  }
+
+  forcedJoinAcceptBtn.onclick = async () => {
+    if (!forcedModalCurrentServerId) return;
+    const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    try {
+      await set(ref(db, `servers/${forcedModalCurrentServerId}/members/${mySanitized}`), { username, role: 'member' });
+      showCustomAlert("You joined the server!", "Welcome!");
+    } catch (err) {
+      showCustomAlert("Failed to join server.", "Error");
+      return;
+    }
+    checkForcedServers();
   };
 
   /* SERVER INVITES (sent as a chat message card) */
@@ -1504,7 +1582,6 @@
       const s = u.toLowerCase().replace(/[.#$/\[\]]/g, "_");
       return !memberSanitizedSet.has(s) && u.toLowerCase() !== username.toLowerCase();
     });
-
     if (candidates.length === 0) {
       inviteUserSelectList.innerHTML = `<div style="color:#949ba4;font-size:13px;padding:12px;text-align:center;">No other users to invite.</div>`;
     } else {
@@ -1565,6 +1642,7 @@
     document.getElementById("homeBtn").classList.add("active");
     document.getElementById("serverNameLabel").textContent = "Direct Messages";
     document.getElementById("addPersonTopBtn").classList.add("hidden");
+    document.getElementById("serverSettingsBtn").classList.add("hidden");
     
     renderSidebarChannels();
     if (activeDms.size > 0) {
@@ -1595,6 +1673,12 @@
       document.getElementById("addPersonTopBtn").classList.remove("hidden");
     } else {
       document.getElementById("addPersonTopBtn").classList.add("hidden");
+    }
+
+    if (myRole === 'creator' || myRole === 'co-creator' || isDev(username)) {
+      document.getElementById("serverSettingsBtn").classList.remove("hidden");
+    } else {
+      document.getElementById("serverSettingsBtn").classList.add("hidden");
     }
 
     renderSidebarChannels();
@@ -1674,6 +1758,7 @@
               e.stopPropagation();
               targetContextGroupId = gId;
               const gMenu = document.getElementById("groupContextMenu");
+ 
               gMenu.classList.remove("hidden");
               gMenu.style.left = `${e.clientX}px`;
               gMenu.style.top = `${e.clientY}px`;
@@ -1684,19 +1769,18 @@
         }
       });
       container.appendChild(groupListDiv);
-      
+
       document.getElementById("btnNewDm").onclick = () => {
         document.getElementById("newDmUsernameInput").value = "";
         populateUserSelectList();
         document.getElementById("newDmModal").classList.remove("hidden");
       };
-      
+
       document.getElementById("btnNewGroup").onclick = () => {
         selectedGroupUsers.clear();
         populateGroupUserSelectList();
         document.getElementById("createGroupModal").classList.remove("hidden");
       };
-      
     } else {
       const server = activeServers[currentServerId];
       if (!server) return;
@@ -1755,7 +1839,6 @@
       if (server.icon) {
         iconDiv.style.backgroundImage = `url("${server.icon}")`;
         iconDiv.style.backgroundSize = "cover";
-  
         iconDiv.textContent = "";
       } else {
         iconDiv.textContent = (server.name || "S").charAt(0).toUpperCase();
@@ -1767,7 +1850,6 @@
         iconDiv.oncontextmenu = (e) => {
           e.preventDefault();
           e.stopPropagation();
-      
           targetContextServerId = sId;
           serverContextMenu.classList.remove("hidden");
           serverContextMenu.style.left = `${e.clientX}px`;
@@ -1786,7 +1868,14 @@
     const messageInput = document.getElementById("message");
 
     messageInput.disabled = false;
-    
+
+    // Show Video Call Button only in DMs
+    if (type === 'dm' && id.toLowerCase() !== username.toLowerCase()) {
+      videoCallBtn.classList.remove("hidden");
+    } else {
+      videoCallBtn.classList.add("hidden");
+    }
+
     if (type === 'channel') {
       const server = activeServers[currentServerId];
       const ch = server && server.channels ? server.channels[id] : null;
@@ -1795,7 +1884,6 @@
       document.getElementById("headerTitle").textContent = chName;
       messageInput.placeholder = `Message #${chName}`;
       headerAvatarContainer.classList.add("hidden");
-      
       if (ch && ch.isEditorOnly) {
         const myRole = getUserServerRole(currentServerId, username);
         if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
@@ -1844,6 +1932,134 @@
     if (currentContext.type === 'channel') return target === `server:${currentServerId}:${currentContext.id}`;
     return false;
   }
+
+  /* WEBRTC VIDEO CALLING INTEGRATION */
+  window.startWebRTC = async function(callId, isCaller) {
+    activeCallId = callId;
+    document.getElementById("videoCallModal").classList.remove("hidden");
+
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById("localVideo").srcObject = localStream;
+    } catch (err) {
+      showCustomAlert("Camera or Microphone access denied.", "Device Error");
+      endCall();
+      return;
+    }
+
+    const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+    pc = new RTCPeerConnection(servers);
+
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    pc.ontrack = event => {
+      if(event.streams && event.streams[0]) {
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+      }
+    };
+
+    const callDoc = ref(db, `calls/${callId}`);
+    const offerCandidates = ref(db, `calls/${callId}/offerCandidates`);
+    const answerCandidates = ref(db, `calls/${callId}/answerCandidates`);
+    if (isCaller) onDisconnect(callDoc).remove();
+
+    let candidateCount = 0;
+    pc.onicecandidate = event => {
+      if(event.candidate && candidateCount < 30) {
+        candidateCount++;
+        const cRef = push(isCaller ? offerCandidates : answerCandidates);
+        set(cRef, event.candidate.toJSON());
+      }
+    };
+
+    if (isCaller) {
+      const offerDescription = await pc.createOffer();
+      await pc.setLocalDescription(offerDescription);
+      await set(ref(db, `calls/${callId}/offer`), { sdp: offerDescription.sdp, type: offerDescription.type });
+
+      const unsubAnswer = onValue(ref(db, `calls/${callId}/answer`), snapshot => {
+        const data = snapshot.val();
+        if (!pc.currentRemoteDescription && data) {
+          pc.setRemoteDescription(new RTCSessionDescription(data));
+        }
+      });
+      callUnsubscribes.push(unsubAnswer);
+
+      const unsubIce = onChildAdded(answerCandidates, snapshot => {
+        const data = snapshot.val();
+        if(data) pc.addIceCandidate(new RTCIceCandidate(data));
+      });
+      callUnsubscribes.push(unsubIce);
+
+    } else {
+      const offerSnapshot = await get(ref(db, `calls/${callId}/offer`));
+      const offerData = offerSnapshot.val();
+      if (!offerData) {
+        showCustomAlert("Call no longer active or offer not found.", "Call Ended");
+        endCall();
+        return;
+      }
+
+      await pc.setRemoteDescription(new RTCSessionDescription(offerData));
+      const answerDescription = await pc.createAnswer();
+      await pc.setLocalDescription(answerDescription);
+      await set(ref(db, `calls/${callId}/answer`), { sdp: answerDescription.sdp, type: answerDescription.type });
+
+      const unsubIce = onChildAdded(offerCandidates, snapshot => {
+        const data = snapshot.val();
+        if(data) pc.addIceCandidate(new RTCIceCandidate(data));
+      });
+      callUnsubscribes.push(unsubIce);
+    }
+
+    const unsubCallDrop = onValue(ref(db, `calls/${callId}/offer`), snapshot => {
+      if(!snapshot.exists() && activeCallId) {
+        endCall(false); 
+      }
+    });
+    callUnsubscribes.push(unsubCallDrop);
+  };
+
+  window.endCall = async function(removeFromDB = true) {
+    document.getElementById("videoCallModal").classList.add("hidden");
+    if (pc) { pc.close(); pc = null; }
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+      document.getElementById("localVideo").srcObject = null;
+      document.getElementById("remoteVideo").srcObject = null;
+    }
+    callUnsubscribes.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
+    callUnsubscribes = [];
+
+    if (removeFromDB && activeCallId) {
+      try { await remove(ref(db, `calls/${activeCallId}`)); } catch(e) {}
+    }
+    activeCallId = null;
+  };
+
+  videoCallBtn.onclick = async (e) => {
+    e.stopPropagation();
+    if (currentContext.type !== 'dm') return;
+    if (activeCallId) return;
+
+    const callId = "call_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const text = `[VIDEOCALL:${callId}]`;
+    const target_dm = getCurrentTargetDm();
+
+    const localId = "pending_" + Date.now();
+    const localMsg = { localId, client_id: localId, username, message: text, target_dm, reply_to: "", created_at: new Date().toISOString() };
+    pendingLocalMessages.push(localMsg);
+    renderMessages(true);
+
+    try {
+      const msgRef = push(ref(db, 'messages'));
+      await set(msgRef, { username, message: text, target_dm, reply_to: "", client_id: localId, created_at: localMsg.created_at });
+    } catch(err) {
+      showCustomAlert("Could not initialize call.", "Network Error");
+      return;
+    }
+    startWebRTC(callId, true);
+  };
 
   /* TYPING INDICATOR UTILS */
   function getTypingKey() {
@@ -1905,8 +2121,7 @@
 
   /* MESSAGE RENDER & INDIVIDUAL MESSAGE */
   function renderMessages(forceScroll = false) {
-    let wasAtBottom = forceScroll ||
-      ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 60);
+    let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 60);
 
     const serverClientIds = new Set();
     const serverMsgIds = new Set();
@@ -1922,7 +2137,6 @@
         if (parts[1] && parts[1].toLowerCase() === myLower) activeDms.add(parts[0]);
       }
 
-   
       if (msg.id && !msg.id.startsWith("pending_")) {
         const msgId = getMsgDomId(msg);
         const serverReactions = {};
@@ -1932,11 +2146,9 @@
           Object.entries(msg.reactions).forEach(([emoji, usersData]) => {
             let userList = [];
             if (Array.isArray(usersData)) {
-        
               userList = usersData;
             } else if (usersData && typeof usersData === 'object') {
-              userList = Object.values(usersData).map(u => typeof u === 'string' ?
-                u : (u.username || '')).filter(Boolean);
+              userList = Object.values(usersData).map(u => typeof u === 'string' ? u : (u.username || '')).filter(Boolean);
               if (userList.length === 0) {
                 userList = Object.keys(usersData);
               }
@@ -1960,13 +2172,13 @@
         allMessages.push({...pm, id: pm.localId});
       }
     });
-    
     allMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     allMessages.forEach((msg) => {
       if (!matchesContext(msg)) return;
 
       const msgId = getMsgDomId(msg);
+      const isOwnMessage = msg.username && msg.username.toLowerCase() === username.toLowerCase();
       let div = document.getElementById(msgId);
 
       if (!div) {
@@ -1976,7 +2188,6 @@
 
         if (!renderedMessageIds.has(msgId)) {
           div.classList.add("animate-pop");
-        
           renderedMessageIds.add(msgId);
         }
         
@@ -1986,13 +2197,11 @@
         const initial = msgUser.charAt(0).toUpperCase();
 
         const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "";
-        const 
-        editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
+        const editedLabel = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : "";
 
         let replyHtml = "";
         if (msg.reply_to) {
-          const parentMsg = cachedMessages.find(m => m.id === msg.reply_to ||
-            m.client_id === msg.reply_to || m.localId === msg.reply_to);
+          const parentMsg = cachedMessages.find(m => m.id === msg.reply_to || m.client_id === msg.reply_to || m.localId === msg.reply_to);
           if (parentMsg) {
             const parentMsgId = getMsgDomId(parentMsg);
             replyHtml = `
@@ -2004,16 +2213,14 @@
         }
 
         div.innerHTML = `
-          <div class="avatar" style="${avatarStyle}" onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${profile.avatar_url ?
-            '' : escapeHtml(initial)}</div>
+          <div class="avatar" style="${avatarStyle}" onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${profile.avatar_url ? '' : escapeHtml(initial)}</div>
           <div class="message-content">
             ${replyHtml}
             <div class="message-header">
               <b onclick="event.stopPropagation(); openProfileCard('${escapeHtml(msgUser)}');">${escapeHtml(msgUser)} ${getDevBadgeHTML(msgUser)}</b>
               <span class="time">${escapeHtml(time)}</span>
             </div>
-            <span class="text" id="text_${msgId}">${formatMessageContent(msg.message)}</span><span id="edited_${msgId}">${editedLabel}</span>
-   
+            <span class="text" id="text_${msgId}">${formatMessageContent(msg.message, isOwnMessage)}</span><span id="edited_${msgId}">${editedLabel}</span>
             <div id="reactions_${msgId}" class="reactions-container"></div>
           </div>
         `;
@@ -2021,8 +2228,8 @@
       } else {
         if (editingMsgId !== msgId) {
           const textEl = document.getElementById(`text_${msgId}`);
-          if (textEl && textEl.innerHTML !== formatMessageContent(msg.message)) {
-            textEl.innerHTML = formatMessageContent(msg.message);
+          if (textEl && textEl.innerHTML !== formatMessageContent(msg.message, isOwnMessage)) {
+            textEl.innerHTML = formatMessageContent(msg.message, isOwnMessage);
           }
         }
         const editedEl = document.getElementById(`edited_${msgId}`);
@@ -2059,7 +2266,6 @@
     const localMsg = {
       localId, client_id: localId, username, message: text, target_dm, reply_to: currentReplyId, created_at: new Date().toISOString()
     };
-    
     pendingLocalMessages.push(localMsg);
     renderMessages(true);
 
@@ -2087,9 +2293,9 @@
     if (currentView === 'server' && currentServerId) {
       const server = activeServers[currentServerId];
       if (!server) return;
-
       const myRole = getUserServerRole(currentServerId, username);
       const canInvite = myRole === 'creator' || myRole === 'co-creator' || myRole === 'editor' || isDev(username);
+      
       if (canInvite) {
         const inviteRow = document.createElement("div");
         inviteRow.className = "member-invite-row";
@@ -2157,7 +2363,6 @@
       const initial = profile.avatar_url ? '' : escapeHtml(uName.charAt(0).toUpperCase());
 
       let badgeHtml = '';
-   
       if (roleKey === 'creator') badgeHtml = '<span class="role-badge role-creator">CREATOR</span>';
       else if (roleKey === 'cocreator') badgeHtml = '<span class="role-badge role-cocreator">CO-CREATOR</span>';
       else if (roleKey === 'editor') badgeHtml = '<span class="role-badge role-editor">EDITOR</span>';
@@ -2168,7 +2373,6 @@
           <div class="status-dot ${status}"></div>
         </div>
         <span class="member-name">${escapeHtml(uName)} ${getDevBadgeHTML(uName)}</span>
- 
         ${badgeHtml}
       `;
       
@@ -2271,6 +2475,7 @@
         "general": { name: "general", isEditorOnly: false }
       }
     };
+    
     try {
       await set(newServerRef, newServerData);
       document.getElementById("createServerModal").classList.add("hidden");
@@ -2342,9 +2547,9 @@
 
   document.getElementById("confirmCreateGroupBtn").onclick = async () => {
     if (selectedGroupUsers.size === 0) return showCustomAlert("Select at least one user.", "Error");
-    
     const membersList = [username, ...Array.from(selectedGroupUsers)];
     const newGroupRef = push(ref(db, 'groups'));
+    
     try {
       await set(newGroupRef, {
         members: membersList,
@@ -2379,7 +2584,6 @@
 
       let removeBtnHtml = "";
       if (canManage && mUser.toLowerCase() !== username.toLowerCase()) {
-       
         removeBtnHtml = `<button class="remove-btn" style="background:transparent; color:#f23f43; border:none; cursor:pointer; font-size:12px; padding: 4px;">Remove</button>`;
       }
 
@@ -2398,8 +2602,7 @@
           e.stopPropagation();
           if (confirm(`Remove ${mUser} from group?`)) {
             const newMembers = members.filter(m => m.toLowerCase() !== mUser.toLowerCase());
-            await update(ref(db, `groups/${groupId}`), 
-              { members: newMembers });
+            await update(ref(db, `groups/${groupId}`), { members: newMembers });
             openGroupDetailsModal(groupId);
           }
         };
@@ -2413,7 +2616,6 @@
       listEl.appendChild(item);
     });
 
-   
     const addSection = document.getElementById("groupAddPersonSection");
     if (canManage) {
       addSection.classList.remove("hidden");
@@ -2448,7 +2650,7 @@
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
-  function formatMessageContent(msgText) {
+  function formatMessageContent(msgText, isOwn) {
     if (!msgText) return "";
     const imageMatch = msgText.match(/^\[IMAGE:(.+)\|(.+)\]$/);
     if (imageMatch) return `<a href="${escapeHtml(imageMatch[1])}" target="_blank"><img src="${escapeHtml(imageMatch[1])}" alt="${escapeHtml(imageMatch[2])}" class="chat-image"></a>`;
@@ -2463,6 +2665,7 @@
       const serverStillExists = !!activeServers[sId];
       const alreadyMember = serverStillExists && !!getUserServerRole(sId, username);
       let btnHtml;
+      
       if (!serverStillExists) {
         btnHtml = `<button class="server-invite-join-btn" disabled>Server no longer exists</button>`;
       } else if (alreadyMember) {
@@ -2471,6 +2674,24 @@
         btnHtml = `<button class="server-invite-join-btn" data-server-id="${escapeHtml(sId)}">Join Server</button>`;
       }
       return `<div class="server-invite-card">📨 <b>${escapeHtml(sName)}</b> invited you to join their server${btnHtml}</div>`;
+    }
+
+    const videoMatch = msgText.match(/^\[VIDEOCALL:(.+)\]$/);
+    if (videoMatch) {
+      const callId = videoMatch[1];
+      if (isOwn) {
+        return `<div class="chat-file-box" style="border-color:#383a40;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#b5bac1"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                  <span style="color:#dbdee1;">Call started</span>
+                  <button class="server-invite-join-btn" style="margin: 0 0 0 10px; padding: 6px 12px;" onclick="startWebRTC('${escapeHtml(callId)}', true)">Re-join</button>
+                </div>`;
+      } else {
+        return `<div class="chat-file-box" style="border-color:#23a55a; background:rgba(35, 165, 90, 0.1);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#23a55a"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                  <span style="color:#dbdee1;">Incoming Video Call</span>
+                  <button class="server-invite-join-btn" style="background:#23a55a; margin: 0 0 0 10px; padding: 6px 12px;" onclick="startWebRTC('${escapeHtml(callId)}', false)">Join?</button>
+                </div>`;
+      }
     }
 
     return escapeHtml(msgText);
@@ -2535,6 +2756,7 @@
   function startInlineEdit(domId, msg) {
     const textEl = document.getElementById(`text_${domId}`);
     if (!textEl) return;
+    
     editingMsgId = domId;
     const originalText = msg.message;
 
@@ -2564,7 +2786,7 @@
         }
       }
       const liveTextEl = document.getElementById(`text_${domId}`);
-      if (liveTextEl) liveTextEl.innerHTML = formatMessageContent(finalText);
+      if (liveTextEl) liveTextEl.innerHTML = formatMessageContent(finalText, true);
     }
 
     inputEl.addEventListener("keydown", (e) => {
@@ -2592,6 +2814,7 @@
   async function toggleReaction(msg, emoji) {
     if (!msg || !msg.id || msg.id.startsWith("pending_")) return;
     const msgRef = ref(db, `messages/${msg.id}/reactions/${emoji}`);
+    
     try {
       const snap = await get(msgRef);
       let users = [];
@@ -2625,6 +2848,7 @@
   function renderReactions(msgDomId, msg) {
     const container = document.getElementById(`reactions_${msgDomId}`);
     if (!container) return;
+    
     container.innerHTML = "";
     
     const reacts = messageReactions[msgDomId] || {};
@@ -2648,6 +2872,7 @@
   /* PROFILE CARD */
   function openProfileCard(targetUser) {
     activeProfileUser = targetUser;
+    
     const profile = userProfiles[targetUser.toLowerCase()] || {};
     const status = getUserStatus(targetUser);
     const isMe = targetUser.toLowerCase() === username.toLowerCase();
@@ -2661,9 +2886,9 @@
     }
 
     popoverBannerTop.style.background = profile.banner_color || "#5865f2";
-
     popoverStatusDot.className = `status-dot-large ${status}`;
     popoverUsername.innerHTML = `${escapeHtml(targetUser)} ${getDevBadgeHTML(targetUser)}`;
+    
     const createdStr = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "Unknown";
     popoverCreatedDate.textContent = `Member Since: ${createdStr}`;
     
@@ -2686,6 +2911,7 @@
     } else {
       popoverAvatarOverlay.classList.add("hidden");
       popoverAvatar.onclick = null;
+      
       popoverPronounsInput.disabled = true;
       popoverPronounsInput.value = profile.pronouns || "";
       
@@ -2704,14 +2930,12 @@
   // Expose to window: this is a `type="module"` script, so top-level function
   // declarations are scoped to the module and are NOT visible to inline
   // onclick="..." HTML attributes (which execute in the global scope).
-  // Message avatars and usernames call openProfileCard(...) via inline
-  // onclick, so without this line those clicks silently threw
-  // "openProfileCard is not defined" and the profile card never opened.
   window.openProfileCard = openProfileCard;
 
   document.getElementById("pfpFileInput").onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const base64 = ev.target.result;
@@ -2751,6 +2975,7 @@
   function updateHeaderAvatar() {
     const container = document.getElementById("headerAvatar");
     const otherUser = currentContext.type === 'dm' ? currentContext.id : "";
+    
     if (!otherUser) return;
     const profile = userProfiles[otherUser.toLowerCase()] || {};
     if (profile.avatar_url) {
@@ -2766,6 +2991,7 @@
   function populateUserSelectList() {
     const listEl = document.getElementById("userSelectList");
     listEl.innerHTML = "";
+    
     const knownUsers = Object.keys(userProfiles).filter(u => u.toLowerCase() !== username.toLowerCase());
     
     if (knownUsers.length === 0) {
