@@ -206,9 +206,59 @@
   .video-container { position: relative; width: 80%; max-width: 1000px; max-height: 70vh; aspect-ratio: 16/9; background: #000; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.5); overflow: hidden; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
   #localVideo { position: absolute; bottom: 20px; right: 20px; width: 220px; aspect-ratio: 16/9; background: #232428; border-radius: 8px; border: 2px solid #5865f2; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: scaleX(-1); }
-  .call-controls { margin-top: 24px; display: flex; gap: 16px; }
+  .call-controls { margin-top: 24px; display: flex; gap: 16px; align-items: center; }
   .end-call-btn { background: #f23f43; color: white; border: none; padding: 14px 28px; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
   .end-call-btn:hover { background: #da373b; }
+
+  /* --- Minimize button + top bar --- */
+  .call-top-bar { position: absolute; top: 12px; right: 12px; left: 12px; display: flex; justify-content: flex-end; gap: 8px; z-index: 2; }
+  .call-top-btn { width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,0.45); color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
+  .call-top-btn:hover { background: rgba(0,0,0,0.7); }
+
+  /* --- Minimize / floating PiP box --- */
+  #videoCallModal.call-minimized { background: transparent; pointer-events: none; align-items: flex-end; justify-content: flex-end; }
+  #videoCallModal.call-minimized .video-container {
+    width: 280px; max-width: 280px; height: 158px; max-height: 158px; aspect-ratio: auto;
+    position: fixed; bottom: 20px; right: 20px; margin: 0; pointer-events: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6); border: 1px solid #1e1f22; cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  #videoCallModal.call-minimized .video-container:hover { transform: scale(1.02); }
+  #videoCallModal.call-minimized .call-controls,
+  #videoCallModal.call-minimized #callChatPanel,
+  #videoCallModal.call-minimized #callTimerDisplay,
+  #videoCallModal.call-minimized .call-top-bar { display: none; }
+  #videoCallModal.call-minimized #localVideo { width: 84px; bottom: 8px; right: 8px; border-width: 1px; }
+  .call-restore-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.55); display: none;
+    align-items: center; justify-content: center; z-index: 3;
+  }
+  #videoCallModal.call-minimized .video-container:hover .call-restore-overlay { display: flex; }
+  .call-restore-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; }
+
+  /* --- Ephemeral in-call chat panel --- */
+  #videoCallModal.chat-open .video-container { margin-right: 320px; }
+  #callChatPanel {
+    position: fixed; top: 0; right: 0; width: 320px; height: 100vh; background: #2b2d31;
+    border-left: 1px solid #1e1f22; display: none; flex-direction: column; z-index: 5001;
+  }
+  #videoCallModal.chat-open #callChatPanel { display: flex; }
+  .call-chat-header { padding: 16px; font-weight: 700; color: #f2f3f5; border-bottom: 1px solid #1e1f22; display: flex; align-items: center; justify-content: space-between; }
+  .call-chat-header small { color: #949ba4; font-weight: 500; font-size: 11px; display: block; margin-top: 2px; }
+  .call-chat-messages { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .call-chat-msg { max-width: 100%; }
+  .call-chat-msg .ccm-sender { font-size: 12px; font-weight: 700; color: #f2f3f5; margin-bottom: 2px; }
+  .call-chat-msg .ccm-sender.me { color: #00d387; }
+  .call-chat-msg .ccm-text { font-size: 14px; color: #dbdee1; line-height: 1.35; word-break: break-word; }
+  .call-chat-msg .ccm-img { max-width: 220px; max-height: 220px; border-radius: 6px; margin-top: 4px; display: block; cursor: pointer; }
+  .call-chat-msg .ccm-meta { font-size: 10px; color: #6d6f78; margin-top: 2px; }
+  .call-chat-system { text-align: center; font-size: 12px; color: #80848e; padding: 4px 0; }
+  .call-chat-input-row { padding: 12px; border-top: 1px solid #1e1f22; display: flex; align-items: center; gap: 8px; }
+  .call-chat-plus { width: 32px; height: 32px; border-radius: 50%; background: #40444b; color: #dbdee1; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; flex-shrink: 0; }
+  .call-chat-plus:hover { background: #4a4e56; }
+  #callChatInput { flex: 1; background: #1e1f22; border: none; border-radius: 20px; padding: 10px 14px; color: #dbdee1; outline: none; font-size: 14px; }
+  .call-chat-empty { color: #6d6f78; font-size: 13px; text-align: center; margin-top: 24px; }
+  .call-chat-dc-status { font-size: 10px; padding: 6px 16px 0; color: #6d6f78; }
 
   #callTimerDisplay {
     position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
@@ -547,14 +597,27 @@
 </div>
 
 <div id="videoCallModal" class="hidden">
-  <div class="video-container">
+  <div class="video-container" id="videoContainer">
+    <div class="call-top-bar">
+      <button class="call-top-btn" id="minimizeCallBtn" title="Minimize">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h12v2H6z"/></svg>
+      </button>
+    </div>
     <div id="callTimerDisplay"><span class="call-dot"></span><span id="callTimerText">Calling...</span></div>
     <video id="remoteVideo" autoplay playsinline></video>
     <div id="remoteAvatarOverlay" class="video-avatar-overlay hidden"><div id="remoteAvatarCircle" class="video-avatar-circle"></div></div>
     <video id="localVideo" autoplay playsinline muted></video>
     <div id="localAvatarOverlay" class="video-avatar-overlay hidden" style="width:220px; height:auto; aspect-ratio:16/9; bottom:20px; right:20px; top:auto; left:auto; border-radius:8px; border:2px solid #5865f2;"><div id="localAvatarCircle" class="video-avatar-circle"></div></div>
+    <div class="call-restore-overlay" id="callRestoreOverlay">
+      <div class="call-restore-btn" id="callRestoreBtn" title="Return to call">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M5 5h6v2H7v4H5V5zm14 0v6h-2V7h-4V5h6zM5 19v-6h2v4h4v2H5zm14 0h-6v-2h4v-4h2v6z"/></svg>
+      </div>
+    </div>
   </div>
   <div class="call-controls">
+    <button class="call-control-btn" id="toggleCallChatBtn" title="Chat">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </button>
     <button class="call-control-btn" id="toggleMuteBtn" title="Mute">
       <svg id="micIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
     </button>
@@ -567,6 +630,25 @@
     <button class="call-control-btn" id="toggleVideoBtn" title="Turn Off Camera">
       <svg id="videoIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
     </button>
+  </div>
+
+  <!-- Ephemeral in-call chat: peer-to-peer only via WebRTC DataChannel, never touches Firebase.
+       All messages/images live only in JS memory for the duration of the call and are wiped
+       (including revoking any Object URLs) the moment the call ends. -->
+  <div id="callChatPanel">
+    <div class="call-chat-header">
+      <div>In-Call Chat<small>Peer-to-peer · not saved anywhere</small></div>
+      <span class="icon-btn" id="closeCallChatBtn" title="Close">✕</span>
+    </div>
+    <div class="call-chat-dc-status" id="callChatDcStatus">Connecting...</div>
+    <div class="call-chat-messages" id="callChatMessages">
+      <div class="call-chat-empty" id="callChatEmpty">No messages yet. Say hi!</div>
+    </div>
+    <div class="call-chat-input-row">
+      <div class="call-chat-plus" id="callChatPlusBtn" title="Send image">+</div>
+      <input type="file" id="callChatFileInput" accept="image/*" class="hidden">
+      <input type="text" id="callChatInput" placeholder="Message (peer-to-peer)" autocomplete="off">
+    </div>
   </div>
 </div>
 
@@ -837,6 +919,19 @@
   let callNotifTimeout = null;
   let globalTimerInterval = null;
   let callCleanupTimers = {};
+
+  // --- PERF FIX state: incremental message cache (see initMessagesSync) ---
+  const messagesById = new Map();
+  let renderScheduled = false;
+  function scheduleRender() {
+    if (renderScheduled) return;
+    renderScheduled = true;
+    requestAnimationFrame(() => {
+      renderScheduled = false;
+      cachedMessages = Array.from(messagesById.values());
+      renderMessages();
+    });
+  }
 
   const loginContainerEl = document.getElementById("login-container");
   const appEl = document.getElementById("app");
@@ -1423,33 +1518,16 @@
       updateAllPresences();
     });
 
-    onValue(query(ref(db, 'messages'), limitToLast(80)), (snapshot) => {
-      const data = snapshot.val();
-      const loadedMessages = [];
-      if (data) Object.keys(data).forEach(key => loadedMessages.push({ id: key, ...data[key] }));
-      if (notifInitialized) {
-        loadedMessages.forEach(msg => {
-          if (!knownMessageIds.has(msg.id)) {
-            knownMessageIds.add(msg.id);
-            if (msg.username && msg.username.toLowerCase() !== username.toLowerCase()) {
-              if (document.hidden || !document.hasFocus()) playNotificationSound();
-              const target = msg.target_dm || "";
-              const isDmMsg = target.includes(":") && !target.startsWith("server:") && !target.startsWith("group:");
-              if (isDmMsg) {
-                const viewingThisDm = currentContext.type === 'dm' && currentContext.id.toLowerCase() === msg.username.toLowerCase();
-                const isCallMsg = typeof msg.message === 'string' && msg.message.startsWith('[VIDEOCALL:');
-                if (!viewingThisDm && !isCallMsg) showDmNotification(msg.username, msg.message || "");
-              }
-            }
-          }
-        });
-      } else {
-        loadedMessages.forEach(msg => knownMessageIds.add(msg.id));
-        notifInitialized = true;
-      }
-      cachedMessages = loadedMessages;
-      renderMessages();
-    });
+    /* PERF FIX — server channel latency (see initMessagesSync() below for full explanation):
+       Replaced the single onValue() full-snapshot listener with incremental
+       onChildAdded/Changed/Removed listeners + a Map-backed cache + rAF-batched
+       rendering. This is what made typing/sending in server channels feel slow
+       compared to DMs even with few messages in the channel — every message sent
+       by *anyone*, *anywhere* in the app (any DM, group, or channel) re-downloaded
+       and reprocessed all 80 cached messages and forced a full re-render, and that
+       re-render also unconditionally rebuilt the server sidebar/member list, which
+       is heavier while inside a server view than the flat DM list is. */
+    initMessagesSync();
 
     onValue(ref(db, 'users'), (snapshot) => {
       const data = snapshot.val();
@@ -1509,6 +1587,66 @@
     onChildRemoved(callsRef, (snap) => { delete allCalls[snap.key]; if (callCleanupTimers[snap.key]) { clearTimeout(callCleanupTimers[snap.key]); delete callCleanupTimers[snap.key]; } refreshAllCallMessages(); });
     get(callsRef).then((snap) => { const data = snap.val() || {}; Object.keys(data).forEach(k => knownCallIds.add(k)); callsInitialized = true; }).catch(() => { callsInitialized = true; });
     ensureGlobalTimer();
+  }
+
+  /* PERF FIX — root cause + fix for "server channels feel slower than DMs":
+     Root cause: the old code had ONE onValue() on the entire flat `messages` node
+     (shared by every DM, group, and channel in the whole app). Firebase re-sends
+     the FULL last-80-message snapshot on ANY write anywhere under that node, so a
+     single keystroke-triggered send from an unrelated DM elsewhere in the app was
+     enough to make every connected client rebuild its full 80-message array AND
+     run a full DOM re-render (renderMessages() also unconditionally rebuilt the
+     server sidebar + member list on every single call). Server/channel views pay
+     more for that unconditional re-render than DM views do, because rebuilding the
+     channel sidebar and member list involves walking the whole current server's
+     channel/member map, while the DM view just re-renders a flat list of active
+     DM partners — so the exact same "everything just re-rendered" event is more
+     expensive, and more visibly janky, while sitting in a channel.
+     Fix (this function):
+       1. Do ONE cheap get() for the initial 80-message snapshot instead of
+          treating every subsequent change like a fresh full load.
+       2. After that, use onChildAdded/onChildChanged/onChildRemoved instead of
+          onValue — each event now touches exactly ONE message in a Map, not all 80.
+       3. Batch renders with requestAnimationFrame (scheduleRender) so a burst of
+          events (e.g. history load, several people sending at once) collapses
+          into a single render instead of one per event.
+     This doesn't require any change to your Firebase data structure or security
+     rules — it's a drop-in replacement for the old onValue() call. */
+  async function initMessagesSync() {
+    const messagesQuery = query(ref(db, 'messages'), limitToLast(80));
+    const initialSnap = await get(messagesQuery).catch(() => null);
+    if (initialSnap && initialSnap.exists()) {
+      initialSnap.forEach(child => {
+        const msg = { id: child.key, ...child.val() };
+        messagesById.set(msg.id, msg);
+        knownMessageIds.add(msg.id);
+      });
+    }
+    notifInitialized = true;
+    cachedMessages = Array.from(messagesById.values());
+    renderMessages();
+
+    function upsertMessage(key, val) {
+      const msg = { id: key, ...val };
+      messagesById.set(key, msg);
+      if (!knownMessageIds.has(msg.id)) {
+        knownMessageIds.add(msg.id);
+        if (msg.username && msg.username.toLowerCase() !== username.toLowerCase()) {
+          if (document.hidden || !document.hasFocus()) playNotificationSound();
+          const target = msg.target_dm || "";
+          const isDmMsg = target.includes(":") && !target.startsWith("server:") && !target.startsWith("group:");
+          if (isDmMsg) {
+            const viewingThisDm = currentContext.type === 'dm' && currentContext.id.toLowerCase() === msg.username.toLowerCase();
+            const isCallMsg = typeof msg.message === 'string' && msg.message.startsWith('[VIDEOCALL:');
+            if (!viewingThisDm && !isCallMsg) showDmNotification(msg.username, msg.message || "");
+          }
+        }
+      }
+      scheduleRender();
+    }
+    onChildAdded(messagesQuery, (snap) => upsertMessage(snap.key, snap.val()));
+    onChildChanged(messagesQuery, (snap) => upsertMessage(snap.key, snap.val()));
+    onChildRemoved(messagesQuery, (snap) => { messagesById.delete(snap.key); scheduleRender(); });
   }
 
   function playNotificationSound() {
@@ -1767,6 +1905,9 @@
     pc = new RTCPeerConnection(RTC_ICE_SERVERS); localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
     pc.ontrack = event => { if(event.streams && event.streams[0]) document.getElementById("remoteVideo").srcObject = event.streams[0]; };
     pc.oniceconnectionstatechange = () => { if (pc && (pc.iceConnectionState === 'failed')) if (pc.restartIce) pc.restartIce(); };
+    resetCallChatState();
+    if (isCaller) { setupCallChatDataChannel(pc.createDataChannel('call-chat', { ordered: true })); }
+    else { pc.ondatachannel = (event) => setupCallChatDataChannel(event.channel); }
     const offerCandidates = ref(db, `call_signals/${callId}/offerCandidates`); const answerCandidates = ref(db, `call_signals/${callId}/answerCandidates`);
     onDisconnect(ref(db, `calls/${callId}/status`)).set('ended');
     pc.onicecandidate = event => { if(event.candidate) { const cRef = push(isCaller ? offerCandidates : answerCandidates); set(cRef, event.candidate.toJSON()); } };
@@ -1786,7 +1927,11 @@
   };
 
   window.endCall = async function(removeFromDB = true) {
-    const endingCallId = activeCallId; document.getElementById("videoCallModal").classList.add("hidden");
+    const endingCallId = activeCallId;
+    const modal = document.getElementById("videoCallModal");
+    modal.classList.add("hidden"); modal.classList.remove("call-minimized", "chat-open");
+    exitAnyPip();
+    wipeCallChatState(); /* ephemeral chat + attachments never outlive the call */
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; document.getElementById("localVideo").srcObject = null; document.getElementById("remoteVideo").srcObject = null; }
     callUnsubscribes.forEach(unsub => { if (typeof unsub === 'function') unsub(); }); callUnsubscribes = []; activeCallId = null; isMicMuted = false; isVideoOff = false;
@@ -1807,6 +1952,211 @@
 
   document.getElementById("toggleMuteBtn").onclick = (e) => { e.stopPropagation(); if (activeCallId) { isMicMuted = !isMicMuted; updateMuteButtonUI(); } };
   document.getElementById("toggleVideoBtn").onclick = async (e) => { e.stopPropagation(); if (activeCallId) { isVideoOff = !isVideoOff; updateVideoButtonUI(); try { const fieldName = callIsCaller ? 'callerVideoOff' : 'calleeVideoOff'; await update(ref(db, `calls/${activeCallId}`), { [fieldName]: isVideoOff }); } catch (err) {} } };
+
+  /* ======================================================================
+     EPHEMERAL IN-CALL CHAT & ATTACHMENTS
+     - Transport: WebRTC RTCDataChannel opened on the same peer connection as
+       the call's audio/video, so it never touches Firebase and only exists
+       while the two peers are connected.
+     - Media (images/custom emoji) never leaves the browser as a file upload:
+       we read them as ArrayBuffers, chunk them over the data channel (data
+       channels have a safe practical message-size ceiling well under 256KB
+       in most browsers), and rebuild a Blob -> URL.createObjectURL() on the
+       receiving end. Every created Object URL is tracked in
+       callChatObjectUrls and revoked on wipeCallChatState()/call end, so
+       nothing lingers in memory or disk cache after the call.
+     - callChatMessages/callChatObjectUrls are plain JS state, never written
+       to Firebase, and are wiped completely (array cleared + URLs revoked +
+       DOM cleared) the instant the call ends.
+     ====================================================================== */
+  let callChatChannel = null;
+  let callChatMessages = [];
+  let callChatObjectUrls = new Set();
+  let callChatIncomingFiles = {}; // transferId -> { name, mime, size, chunks: [], received: 0 }
+  const CALL_CHAT_CHUNK_SIZE = 16 * 1024; // safe cross-browser RTCDataChannel chunk size
+
+  function resetCallChatState() {
+    wipeCallChatState();
+    document.getElementById("callChatDcStatus").textContent = "Connecting...";
+  }
+
+  function wipeCallChatState() {
+    callChatObjectUrls.forEach(url => URL.revokeObjectURL(url));
+    callChatObjectUrls = new Set();
+    callChatMessages = [];
+    callChatIncomingFiles = {};
+    if (callChatChannel) { try { callChatChannel.close(); } catch (e) {} callChatChannel = null; }
+    const msgsEl = document.getElementById("callChatMessages");
+    if (msgsEl) msgsEl.innerHTML = '<div class="call-chat-empty" id="callChatEmpty">No messages yet. Say hi!</div>';
+    const modal = document.getElementById("videoCallModal");
+    if (modal) modal.classList.remove("chat-open");
+  }
+
+  function setupCallChatDataChannel(channel) {
+    callChatChannel = channel;
+    channel.binaryType = 'arraybuffer';
+    channel.onopen = () => { document.getElementById("callChatDcStatus").textContent = "Connected — messages are peer-to-peer and not saved."; };
+    channel.onclose = () => { document.getElementById("callChatDcStatus").textContent = "Disconnected"; };
+    channel.onerror = () => { document.getElementById("callChatDcStatus").textContent = "Connection issue"; };
+    channel.onmessage = (event) => handleCallChatIncoming(event.data);
+  }
+
+  function callChatPeerName() {
+    const call = activeCallId ? allCalls[activeCallId] : null;
+    return getRemotePeerName(call) || "Peer";
+  }
+
+  function appendCallChatMessage(entry) {
+    callChatMessages.push(entry);
+    const emptyEl = document.getElementById("callChatEmpty"); if (emptyEl) emptyEl.remove();
+    const container = document.getElementById("callChatMessages");
+    const div = document.createElement("div"); div.className = "call-chat-msg";
+    const senderLabel = entry.own ? "You" : callChatPeerName();
+    let inner = `<div class="ccm-sender ${entry.own ? 'me' : ''}">${escapeHtml(senderLabel)}</div>`;
+    if (entry.type === 'text') inner += `<div class="ccm-text">${escapeHtml(entry.text)}</div>`;
+    else if (entry.type === 'image') inner += `<img class="ccm-img" src="${entry.url}" alt="${escapeHtml(entry.name || 'image')}">`;
+    inner += `<div class="ccm-meta">${new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
+    div.innerHTML = inner;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function sendCallChatText() {
+    const input = document.getElementById("callChatInput");
+    const text = input.value.trim(); if (!text) return;
+    input.value = "";
+    if (!callChatChannel || callChatChannel.readyState !== 'open') { showCustomAlert("Chat isn't connected to your call partner yet.", "Not Connected"); return; }
+    callChatChannel.send(JSON.stringify({ kind: 'text', text }));
+    appendCallChatMessage({ type: 'text', text, own: true, ts: Date.now() });
+  }
+
+  async function sendCallChatImage(file) {
+    if (!callChatChannel || callChatChannel.readyState !== 'open') { showCustomAlert("Chat isn't connected to your call partner yet.", "Not Connected"); return; }
+    if (!file.type.startsWith('image/')) { showCustomAlert("Only image files can be sent in call chat.", "Unsupported File"); return; }
+    const buffer = await file.arrayBuffer();
+    const transferId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`);
+    const totalChunks = Math.ceil(buffer.byteLength / CALL_CHAT_CHUNK_SIZE) || 1;
+    callChatChannel.send(JSON.stringify({ kind: 'file-start', transferId, name: file.name, mime: file.type, size: buffer.byteLength, totalChunks }));
+    for (let i = 0; i < totalChunks; i++) {
+      const chunk = buffer.slice(i * CALL_CHAT_CHUNK_SIZE, (i + 1) * CALL_CHAT_CHUNK_SIZE);
+      // Small header so the receiver can route this binary chunk to the right transfer/index without JSON+base64 overhead.
+      const header = new TextEncoder().encode(JSON.stringify({ t: transferId, i }));
+      const framed = new Uint8Array(2 + header.length + chunk.byteLength);
+      new DataView(framed.buffer).setUint16(0, header.length);
+      framed.set(header, 2); framed.set(new Uint8Array(chunk), 2 + header.length);
+      callChatChannel.send(framed.buffer);
+      // Yield periodically so large images don't block the DataChannel's internal buffer or the main thread.
+      if (i % 8 === 7) await new Promise(r => setTimeout(r, 0));
+    }
+    // Show our own copy locally without waiting on the network.
+    const localUrl = URL.createObjectURL(file); callChatObjectUrls.add(localUrl);
+    appendCallChatMessage({ type: 'image', url: localUrl, name: file.name, own: true, ts: Date.now() });
+  }
+
+  function handleCallChatIncoming(data) {
+    if (typeof data === 'string') {
+      let msg; try { msg = JSON.parse(data); } catch (e) { return; }
+      if (msg.kind === 'text') appendCallChatMessage({ type: 'text', text: msg.text, own: false, ts: Date.now() });
+      else if (msg.kind === 'file-start') callChatIncomingFiles[msg.transferId] = { name: msg.name, mime: msg.mime, size: msg.size, totalChunks: msg.totalChunks, chunks: new Array(msg.totalChunks) };
+      return;
+    }
+    // Binary chunk: [2-byte header length][JSON header][raw chunk bytes]
+    const view = new DataView(data);
+    const headerLen = view.getUint16(0);
+    const headerBytes = new Uint8Array(data, 2, headerLen);
+    const header = JSON.parse(new TextDecoder().decode(headerBytes));
+    const transfer = callChatIncomingFiles[header.t]; if (!transfer) return;
+    transfer.chunks[header.i] = data.slice(2 + headerLen);
+    if (transfer.chunks.every(c => c)) {
+      const blob = new Blob(transfer.chunks, { type: transfer.mime });
+      const url = URL.createObjectURL(blob); callChatObjectUrls.add(url);
+      appendCallChatMessage({ type: 'image', url, name: transfer.name, own: false, ts: Date.now() });
+      delete callChatIncomingFiles[header.t];
+    }
+  }
+
+  document.getElementById("callChatInput").addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") sendCallChatText(); });
+  document.getElementById("callChatPlusBtn").onclick = () => document.getElementById("callChatFileInput").click();
+  document.getElementById("callChatFileInput").onchange = (e) => { const file = e.target.files[0]; if (file) sendCallChatImage(file); e.target.value = ""; };
+  document.getElementById("toggleCallChatBtn").onclick = (e) => { e.stopPropagation(); document.getElementById("videoCallModal").classList.toggle("chat-open"); };
+  document.getElementById("closeCallChatBtn").onclick = () => document.getElementById("videoCallModal").classList.remove("chat-open");
+
+  /* ======================================================================
+     MINIMIZE + PICTURE-IN-PICTURE
+     - "Minimize" shrinks the call into a floating box docked bottom-right
+       inside the app (CSS .call-minimized), with a hover-to-return control.
+     - If the browser supports the Document Picture-in-Picture API, we also
+       move the floating box into a real always-on-top OS-level PiP window
+       when the user switches tabs — so the call stays visible even outside
+       this browser tab. Falls back to standard <video> Picture-in-Picture
+       (moving just the remote video into a PiP window) where Document PiP
+       isn't available. Both are optional progressive enhancements: plain
+       in-app minimize always works even if neither API is supported.
+     ====================================================================== */
+  let pipWindow = null; // Document PiP window, if active
+
+  function setCallMinimized(minimized) {
+    const modal = document.getElementById("videoCallModal");
+    modal.classList.toggle("call-minimized", minimized);
+    if (!minimized) exitAnyPip();
+  }
+  document.getElementById("minimizeCallBtn").onclick = (e) => { e.stopPropagation(); setCallMinimized(true); };
+  document.getElementById("callRestoreBtn").onclick = async (e) => {
+    e.stopPropagation();
+    if (pipWindow && !pipWindow.closed) { try { window.focus(); } catch (err) {} exitAnyPip(); }
+    setCallMinimized(false);
+  };
+  document.getElementById("videoContainer").addEventListener("click", () => {
+    if (document.getElementById("videoCallModal").classList.contains("call-minimized")) setCallMinimized(false);
+  });
+
+  async function exitAnyPip() {
+    if (pipWindow && !pipWindow.closed) { try { pipWindow.close(); } catch (e) {} }
+    pipWindow = null;
+    if (document.pictureInPictureElement) { try { await document.exitPictureInPicture(); } catch (e) {} }
+  }
+
+  async function tryEnterPip() {
+    if (!activeCallId) return;
+    const videoContainer = document.getElementById("videoContainer");
+    // Preferred: Document Picture-in-Picture — moves our real, interactive floating
+    // box (with the "Return" control) into a genuine always-on-top OS window.
+    if ('documentPictureInPicture' in window) {
+      try {
+        pipWindow = await window.documentPictureInPicture.requestWindow({ width: 300, height: 180 });
+        [...document.styleSheets].forEach(sheet => {
+          try {
+            const style = document.createElement('style');
+            style.textContent = [...sheet.cssRules].map(r => r.cssText).join('\n');
+            pipWindow.document.head.appendChild(style);
+          } catch (e) {}
+        });
+        pipWindow.document.body.style.margin = '0';
+        pipWindow.document.body.appendChild(videoContainer);
+        pipWindow.addEventListener('pagehide', () => {
+          // User closed the PiP window directly — bring the call box back into the app.
+          document.getElementById("videoCallModal").insertBefore(videoContainer, document.getElementById("videoCallModal").firstChild);
+          pipWindow = null;
+        });
+        return;
+      } catch (err) { pipWindow = null; /* fall through to standard video PiP */ }
+    }
+    // Fallback: standard <video> Picture-in-Picture on the remote peer's video only.
+    const remoteVideo = document.getElementById("remoteVideo");
+    if (document.pictureInPictureEnabled && !remoteVideo.disablePictureInPicture) {
+      try { await remoteVideo.requestPictureInPicture(); } catch (err) {}
+    }
+  }
+
+  // Cross-tab behavior: if the call is minimized and the user switches away from
+  // this tab, proactively hand off to a real PiP window/video so the call is still
+  // visible. Clicking the return control inside that PiP re-focuses this tab.
+  document.addEventListener("visibilitychange", () => {
+    if (!activeCallId) return;
+    const minimized = document.getElementById("videoCallModal").classList.contains("call-minimized");
+    if (document.hidden && minimized) tryEnterPip();
+  });
+  document.getElementById("remoteVideo").addEventListener("leavepictureinpicture", () => { pipWindow = null; });
 
   videoCallBtn.onclick = async (e) => {
     e.stopPropagation(); if (currentContext.type !== 'dm') return;
@@ -1877,6 +2227,7 @@
   function renderMessages(forceScroll = false) {
     let wasAtBottom = forceScroll || ((messagesEl.scrollHeight - messagesEl.scrollTop) <= messagesEl.clientHeight + 60);
     const serverClientIds = new Set(); const serverMsgIds = new Set();
+    const activeDmsSizeBefore = activeDms.size; /* PERF FIX: only rebuild sidebar if this changed */
     cachedMessages.forEach((msg) => {
       if (msg.client_id) serverClientIds.add(msg.client_id); if (msg.id) serverMsgIds.add(msg.id);
       const target = msg.target_dm || ""; if (target.includes(":") && !target.startsWith("server:") && !target.startsWith("group:")) {
@@ -1908,7 +2259,11 @@
       } else { if (editingMsgId !== msgId) { const textEl = document.getElementById(`text_${msgId}`); const isCallWidget = textEl && textEl.querySelector('[data-call-id]'); if (textEl && !isCallWidget && textEl.innerHTML !== formatMessageContent(msg.message, isOwnMessage)) textEl.innerHTML = formatMessageContent(msg.message, isOwnMessage); } const editedEl = document.getElementById(`edited_${msgId}`); if (editedEl) editedEl.innerHTML = msg.is_edited ? `<span class="edited-tag">(edited)</span>` : ""; }
       div._msgData = msg; attachMessageClickHandlers(div); renderReactions(msgId, msg);
     });
-    renderSidebarChannels(); renderTypingIndicator();
+    /* PERF FIX: renderSidebarChannels() used to run unconditionally on every single
+       message event app-wide — now it only re-runs when a new DM partner actually
+       showed up (the only thing about the sidebar that renderMessages() can change). */
+    if (activeDms.size !== activeDmsSizeBefore) renderSidebarChannels();
+    renderTypingIndicator();
     if (wasAtBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
