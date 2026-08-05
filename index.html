@@ -203,9 +203,18 @@
   .icon-btn:hover, .icon-btn.active { color: #f2f3f5; }
 
   #videoCallModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(17, 18, 20, 0.95); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .video-container { position: relative; width: 80%; max-width: 1000px; max-height: 70vh; aspect-ratio: 16/9; background: #000; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.5); overflow: hidden; }
+  .video-container { position: relative; width: 80%; max-width: 1100px; max-height: 70vh; aspect-ratio: 16/9; background: #000; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.5); overflow: hidden; }
+  #remoteVideosGrid { display: grid; width: 100%; height: 100%; gap: 4px; background: #000; }
+  #remoteVideosGrid.grid-1 { grid-template-columns: 1fr; }
+  #remoteVideosGrid.grid-2 { grid-template-columns: 1fr 1fr; }
+  #remoteVideosGrid.grid-3, #remoteVideosGrid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  #remoteVideosGrid.grid-many { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .remote-video-wrap { position: relative; width: 100%; height: 100%; background: #1e1f22; overflow: hidden; }
+  .remote-video-wrap video { width: 100%; height: 100%; object-fit: cover; }
+  .remote-video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.55); color: #fff; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px; pointer-events: none; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
-  #localVideo { position: absolute; bottom: 20px; right: 20px; width: 220px; aspect-ratio: 16/9; background: #232428; border-radius: 8px; border: 2px solid #5865f2; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: scaleX(-1); }
+  #localVideo { position: absolute; bottom: 20px; right: 20px; width: 220px; aspect-ratio: 16/9; background: #232428; border-radius: 8px; border: 2px solid #5865f2; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: scaleX(-1); z-index: 5; }
+
   .call-controls { margin-top: 24px; display: flex; gap: 16px; align-items: center; }
   .end-call-btn { background: #f23f43; color: white; border: none; padding: 14px 28px; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
   .end-call-btn:hover { background: #da373b; }
@@ -360,10 +369,11 @@
   .server-invite-join-btn:disabled { background: #4e5058; cursor: default; opacity: 0.7; }
 
   .dm-notification-banner {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
     background: #2b2d31; border: 1px solid #1f2023; border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 12px 16px; z-index: 5000;
-    display: flex; align-items: center; gap: 10px; cursor: pointer; max-width: 360px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.3);
+    padding: 12px 16px; z-index: 5000;
+    display: flex; align-items: center; gap: 10px; cursor: pointer; max-width: 380px;
   }
   .dm-notif-avatar {
     width: 36px; height: 36px; border-radius: 50%; background: #5865f2; flex-shrink: 0;
@@ -604,8 +614,12 @@
       </button>
     </div>
     <div id="callTimerDisplay"><span class="call-dot"></span><span id="callTimerText">Calling...</span></div>
-    <video id="remoteVideo" autoplay playsinline></video>
-    <div id="remoteAvatarOverlay" class="video-avatar-overlay hidden"><div id="remoteAvatarCircle" class="video-avatar-circle"></div></div>
+    <div id="remoteVideosGrid" class="grid-1">
+      <div class="remote-video-wrap" id="remoteVideoWrapSingle">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div id="remoteAvatarOverlay" class="video-avatar-overlay hidden"><div id="remoteAvatarCircle" class="video-avatar-circle"></div></div>
+      </div>
+    </div>
     <video id="localVideo" autoplay playsinline muted></video>
     <div id="localAvatarOverlay" class="video-avatar-overlay hidden" style="width:220px; height:auto; aspect-ratio:16/9; bottom:20px; right:20px; top:auto; left:auto; border-radius:8px; border:2px solid #5865f2;"><div id="localAvatarCircle" class="video-avatar-circle"></div></div>
     <div class="call-restore-overlay" id="callRestoreOverlay">
@@ -614,6 +628,7 @@
       </div>
     </div>
   </div>
+
   <div class="call-controls">
     <button class="call-control-btn" id="toggleCallChatBtn" title="Chat">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
@@ -621,12 +636,13 @@
     <button class="call-control-btn" id="toggleMuteBtn" title="Mute">
       <svg id="micIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
     </button>
-    <button class="end-call-btn" onclick="endCall()">
+    <button class="end-call-btn" id="endOrLeaveCallBtn" onclick="endOrLeaveCall()">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.6 13.6l-1.4 1.4L12 13.4l-3.2 3.2-1.4-1.4L10.6 12 7.4 8.8l1.4-1.4L12 10.6l3.2-3.2 1.4 1.4L13.4 12l3.2 3.2z"/>
       </svg>
-      End Call
+      <span id="endOrLeaveCallLabel">End Call</span>
     </button>
+
     <button class="call-control-btn" id="toggleVideoBtn" title="Turn Off Camera">
       <svg id="videoIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
     </button>
@@ -712,7 +728,20 @@
   <button id="roleRemove" class="menu-option" style="color:#f23f43;">Remove from Server</button>
 </div>
 <div id="serverContextMenu" class="msg-context-menu hidden"><button id="btnDeleteServerCtx" class="menu-option" style="color:#f23f43;">Delete Server</button></div>
-<div id="groupContextMenu" class="msg-context-menu hidden"><button id="btnDeleteGroupCtx" class="menu-option" style="color:#f23f43;">Delete Group</button></div>
+<div id="groupContextMenu" class="msg-context-menu hidden">
+  <button id="btnRenameGroupCtx" class="menu-option">Edit Group Name</button>
+  <button id="btnChangeGroupIconCtx" class="menu-option">Change Group Icon</button>
+  <button id="btnDeleteGroupCtx" class="menu-option" style="color:#f23f43;">Delete Group</button>
+</div>
+<div id="groupMemberMenu" class="msg-context-menu hidden">
+  <button id="btnRemoveGroupMember" class="menu-option" style="color:#f23f43;">Remove from Group</button>
+</div>
+<input type="file" id="groupIconFileInput" accept="image/*" class="hidden">
+
+<div id="channelContextMenu" class="msg-context-menu hidden">
+  <button id="btnRenameChannelCtx" class="menu-option">Edit Channel</button>
+  <button id="btnDeleteChannelCtx" class="menu-option" style="color:#f23f43;">Delete Channel</button>
+</div>
 
 <div id="createServerModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
@@ -796,6 +825,47 @@
     </div>
   </div>
 </div>
+
+<div id="customConfirmModal" class="modal-overlay hidden">
+  <div class="modal-box animate-pop" style="text-align:center;">
+    <div class="alert-icon" style="color:#f0b232;">❓</div>
+    <h3 id="customConfirmTitle">Confirm</h3>
+    <p id="customConfirmMessage">Are you sure?</p>
+    <div class="modal-actions" style="justify-content: center; gap: 12px;">
+      <button class="secondary" id="customConfirmCancelBtn">Cancel</button>
+      <button id="customConfirmOkBtn" style="background:#f23f43;">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="renameChannelModal" class="modal-overlay hidden">
+  <div class="modal-box animate-pop">
+    <h3>Edit Channel</h3>
+    <label style="font-size:12px; color:#b5bac1; text-transform:uppercase; font-weight:700;">Channel Name</label>
+    <input id="renameChannelInput" type="text" placeholder="channel-name">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; margin-top:8px;">
+      <input type="checkbox" id="renameIsEditorOnly">
+      <label for="renameIsEditorOnly" style="margin:0; text-transform:none; font-size:13px; color:#dbdee1;">Editor-only channel</label>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" id="closeRenameChannelModal">Cancel</button>
+      <button id="confirmRenameChannelBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="renameGroupModal" class="modal-overlay hidden">
+  <div class="modal-box animate-pop">
+    <h3>Edit Group Name</h3>
+    <label style="font-size:12px; color:#b5bac1; text-transform:uppercase; font-weight:700;">Group Name</label>
+    <input id="renameGroupInput" type="text" placeholder="Group name" maxlength="40">
+    <div class="modal-actions">
+      <button class="secondary" id="closeRenameGroupModal">Cancel</button>
+      <button id="confirmRenameGroupBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 
 <div id="sendInviteModal" class="modal-overlay hidden">
   <div class="modal-box animate-pop">
@@ -904,7 +974,7 @@
   let knownMessageIds = new Set();
   let dmNotifTimeout = null;
   let audioCtx = null;
-  let pc = null;
+  let pc = null; // legacy 1:1 peer connection
   let localStream = null;
   let activeCallId = null;
   let callUnsubscribes = [];
@@ -919,6 +989,13 @@
   let callNotifTimeout = null;
   let globalTimerInterval = null;
   let callCleanupTimers = {};
+  // Multi-peer (group call) state
+  let peerConnections = new Map(); // remoteUsername -> RTCPeerConnection
+  let dataChannels = new Map(); // remoteUsername -> RTCDataChannel
+  let remoteVideoEls = new Map(); // remoteUsername -> video element
+  let isGroupCall = false;
+  let groupCallParticipants = [];
+
 
   // --- PERF FIX state: incremental message cache (see initMessagesSync) ---
   const messagesById = new Map();
@@ -1025,11 +1102,52 @@
     document.getElementById("customAlertModal").classList.add("hidden");
   };
 
+  let confirmResolve = null;
+  function showCustomConfirm(message, title = "Confirm") {
+    return new Promise((resolve) => {
+      confirmResolve = resolve;
+      document.getElementById("customConfirmTitle").textContent = title;
+      document.getElementById("customConfirmMessage").textContent = message;
+      document.getElementById("customConfirmModal").classList.remove("hidden");
+    });
+  }
+  document.getElementById("customConfirmOkBtn").onclick = () => {
+    document.getElementById("customConfirmModal").classList.add("hidden");
+    if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+  };
+  document.getElementById("customConfirmCancelBtn").onclick = () => {
+    document.getElementById("customConfirmModal").classList.add("hidden");
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+  };
+  document.getElementById("customConfirmModal").onclick = (e) => {
+    if (e.target.id === "customConfirmModal") {
+      document.getElementById("customConfirmModal").classList.add("hidden");
+      if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+    }
+  };
+
+  let targetContextChannelId = null;
+  const channelContextMenu = document.getElementById("channelContextMenu");
+
   function isDev(user) {
     if (!user) return false;
     const lower = user.toLowerCase();
     return lower === "speezely" || lower === "$@g3";
   }
+
+  function isGroupOwner(group, user) {
+    if (!group || !user) return false;
+    // Prefer explicit creator field; fall back to first member (legacy groups)
+    if (group.creator) return group.creator.toLowerCase() === user.toLowerCase();
+    const members = group.members || [];
+    return members[0] && members[0].toLowerCase() === user.toLowerCase();
+  }
+
+  function canManageGroup(group, user) {
+    return isGroupOwner(group, user) || isDev(user);
+  }
+
+
 
   function getDevBadgeHTML(user) {
     return isDev(user) ? '<span class="dev-badge" title="Developer">DEV</span>' : '';
@@ -1117,9 +1235,9 @@
     fileInput.click();
   };
 
-  fileInput.onchange = () => {
-    const file = fileInput.files[0];
-    if (!file) return;
+  // Shared helper used by file picker AND paste-to-chat
+  async function sendFileOrImage(file) {
+    if (!file || messageInput.disabled) return;
     if (currentContext.type === 'channel') {
       const server = activeServers[currentServerId];
       const ch = server && server.channels ? server.channels[currentContext.id] : null;
@@ -1127,7 +1245,6 @@
         const myRole = getUserServerRole(currentServerId, username);
         if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) {
           showPermissionError(file.type.startsWith("image/") ? "You do not have permission to upload images into this channel." : "You do not have permission to upload files into this channel.");
-          fileInput.value = "";
           return;
         }
       }
@@ -1136,7 +1253,8 @@
     const reader = new FileReader();
     reader.onload = async (e) => {
       const base64Data = e.target.result;
-      const fileMessageText = file.type.startsWith("image/") ? `[IMAGE:${base64Data}|${file.name}]` : `[FILE:${base64Data}|${file.name}]`;
+      const safeName = file.name || (file.type.startsWith("image/") ? "pasted-image.png" : "file");
+      const fileMessageText = file.type.startsWith("image/") ? `[IMAGE:${base64Data}|${safeName}]` : `[FILE:${base64Data}|${safeName}]`;
       const localId = "pending_file_" + (crypto.randomUUID ? crypto.randomUUID() : Date.now());
       const replyTarget = activeReplyTarget;
       const currentReplyId = replyTarget ? (replyTarget.id || replyTarget.client_id || "") : "";
@@ -1150,12 +1268,28 @@
         localMsg.id = msgRef.key;
       } catch (err) {
         showCustomAlert("Failed to send file.", "Error");
-      } finally {
-        fileInput.value = "";
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  fileInput.onchange = () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    sendFileOrImage(file);
+    fileInput.value = "";
   };
+
+  // Paste images (and other files) directly into the message bar — like Discord
+  messageInput.addEventListener("paste", (e) => {
+    if (messageInput.disabled) return;
+    const items = (e.clipboardData && e.clipboardData.items) ? Array.from(e.clipboardData.items) : [];
+    const imageItem = items.find(item => item.kind === "file" && item.type && item.type.startsWith("image/"));
+    if (!imageItem) return; // let normal text paste through
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) sendFileOrImage(file);
+  });
 
   emojisOption.onclick = (e) => {
     e.stopPropagation();
@@ -1216,7 +1350,8 @@
   document.getElementById("btnDeleteServerCtx").onclick = async () => {
     serverContextMenu.classList.add("hidden");
     if (!targetContextServerId) return;
-    if (confirm("Are you sure you want to delete this server? This action cannot be undone.")) {
+    const ok = await showCustomConfirm("Are you sure you want to delete this server? This action cannot be undone.", "Delete Server");
+    if (ok) {
       try {
         await remove(ref(db, `servers/${targetContextServerId}`));
         switchToHomeView();
@@ -1229,7 +1364,8 @@
   document.getElementById("btnDeleteGroupCtx").onclick = async () => {
     groupContextMenu.classList.add("hidden");
     if (!targetContextGroupId) return;
-    if (confirm("Are you sure you want to delete this group? This action cannot be undone.")) {
+    const ok = await showCustomConfirm("Are you sure you want to delete this group? This action cannot be undone.", "Delete Group");
+    if (ok) {
       try {
         await remove(ref(db, `groups/${targetContextGroupId}`));
         if (currentContext.type === 'group' && currentContext.id === targetContextGroupId) {
@@ -1241,11 +1377,215 @@
     }
   };
 
+  document.getElementById("btnRenameGroupCtx").onclick = (e) => {
+    if (e) e.stopPropagation();
+    groupContextMenu.classList.add("hidden");
+    if (!targetContextGroupId) return;
+    const group = activeGroups[targetContextGroupId];
+    if (!group) return;
+    if (!canManageGroup(group, username)) return showCustomAlert("Only the group owner or a dev can rename the group.", "Permission Denied");
+    const members = group.members || [];
+    const currentName = group.name || formatGroupName(members);
+    document.getElementById("renameGroupInput").value = currentName;
+    document.getElementById("renameGroupModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("renameGroupInput").focus(), 50);
+  };
+
+  document.getElementById("closeRenameGroupModal").onclick = () => {
+    document.getElementById("renameGroupModal").classList.add("hidden");
+  };
+  document.getElementById("renameGroupModal").onclick = (e) => {
+    if (e.target.id === "renameGroupModal") document.getElementById("renameGroupModal").classList.add("hidden");
+  };
+  document.getElementById("confirmRenameGroupBtn").onclick = async () => {
+    if (!targetContextGroupId) return;
+    const group = activeGroups[targetContextGroupId];
+    if (!group || !canManageGroup(group, username)) return;
+    const trimmed = document.getElementById("renameGroupInput").value.trim();
+    if (!trimmed) return showCustomAlert("Name cannot be empty.", "Hold up!");
+    try {
+      await update(ref(db, `groups/${targetContextGroupId}`), { name: trimmed });
+      // Optimistic local update so UI refreshes even before onValue
+      if (activeGroups[targetContextGroupId]) activeGroups[targetContextGroupId].name = trimmed;
+      document.getElementById("renameGroupModal").classList.add("hidden");
+      renderSidebarChannels();
+      if (currentContext.type === 'group' && currentContext.id === targetContextGroupId) {
+        document.getElementById("headerTitle").textContent = trimmed;
+        document.getElementById("message").placeholder = `Message ${trimmed}`;
+      }
+      showCustomAlert("Group renamed!", "Saved");
+    } catch (err) {
+      showCustomAlert("Failed to rename group: " + (err.message || "unknown error"), "Error");
+    }
+  };
+  document.getElementById("renameGroupInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("confirmRenameGroupBtn").click();
+  });
+
+
+  let pendingGroupIconId = null;
+  document.getElementById("btnChangeGroupIconCtx").onclick = (e) => {
+    if (e) e.stopPropagation();
+    groupContextMenu.classList.add("hidden");
+    if (!targetContextGroupId) return;
+    const group = activeGroups[targetContextGroupId];
+    if (!group) return;
+    if (!canManageGroup(group, username)) return showCustomAlert("Only the group owner or a dev can change the group icon.", "Permission Denied");
+    pendingGroupIconId = targetContextGroupId;
+    document.getElementById("groupIconFileInput").click();
+  };
+
+  document.getElementById("groupIconFileInput").onchange = async (e) => {
+    const file = e.target.files[0];
+    const gId = pendingGroupIconId || targetContextGroupId;
+    pendingGroupIconId = null;
+    if (!file || !gId) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result;
+      try {
+        await update(ref(db, `groups/${gId}`), { icon: base64 });
+        if (activeGroups[gId]) activeGroups[gId].icon = base64;
+        showCustomAlert("Group icon updated!", "Saved");
+        renderSidebarChannels();
+      } catch (err) {
+        showCustomAlert("Failed to update group icon: " + (err.message || "unknown"), "Error");
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+
+  let activeGroupMemberTargetId = null;
+  function openGroupMemberMenu(x, y, groupId) {
+    activeGroupMemberTargetId = groupId;
+    const menu = document.getElementById("groupMemberMenu");
+    menu.classList.remove("hidden");
+    menu.style.left = `${Math.min(x, window.innerWidth - 180)}px`;
+    menu.style.top = `${Math.min(y, window.innerHeight - 80)}px`;
+  }
+  document.getElementById("btnRemoveGroupMember").onclick = async () => {
+    document.getElementById("groupMemberMenu").classList.add("hidden");
+    if (!activeGroupMemberTargetId || !activeTargetMemberUser) return;
+    const group = activeGroups[activeGroupMemberTargetId];
+    if (!group) return;
+    if (!canManageGroup(group, username)) return;
+    const members = group.members || [];
+    const ok = await showCustomConfirm(`Remove ${activeTargetMemberUser} from this group?`, "Remove Member");
+    if (!ok) return;
+    const newMembers = members.filter(m => m.toLowerCase() !== activeTargetMemberUser.toLowerCase());
+    try {
+      await update(ref(db, `groups/${activeGroupMemberTargetId}`), { members: newMembers });
+      renderMemberList();
+      renderSidebarChannels();
+    } catch (err) {
+      showCustomAlert("Failed to remove member.", "Error");
+    }
+  };
+
+  async function openGroupAddMemberPrompt(groupId) {
+    const group = activeGroups[groupId];
+    if (!group) return;
+    if (!canManageGroup(group, username)) return showCustomAlert("Only the group owner or a dev can add members.", "Permission Denied");
+    const members = group.members || [];
+
+    const newUser = prompt("Enter username to add to this group:");
+    if (!newUser) return;
+    const targetLower = newUser.trim().toLowerCase();
+    const matchKey = Object.keys(userProfiles).find(u => u.toLowerCase() === targetLower);
+    if (!matchKey) return showCustomAlert("User does not exist.", "User Not Found");
+    if (members.map(m => m.toLowerCase()).includes(targetLower)) return showCustomAlert("User is already in the group.", "Wait!");
+    // Always store the original-cased username from the profile (keys are lowercased)
+    const realName = (userProfiles[matchKey] && userProfiles[matchKey].username) || newUser.trim();
+    try {
+      await update(ref(db, `groups/${groupId}`), { members: [...members, realName] });
+      showCustomAlert(`Added ${realName}!`, "Success");
+      renderMemberList();
+      renderSidebarChannels();
+    } catch (err) {
+      showCustomAlert("Failed to add member: " + (err.message || "unknown"), "Error");
+    }
+  }
+
+
+  document.getElementById("btnRenameChannelCtx").onclick = () => {
+    channelContextMenu.classList.add("hidden");
+    if (!targetContextChannelId || !currentServerId) return;
+    const server = activeServers[currentServerId];
+    const ch = server && server.channels ? server.channels[targetContextChannelId] : null;
+    if (!ch) return;
+    document.getElementById("renameChannelInput").value = ch.name || targetContextChannelId;
+    document.getElementById("renameIsEditorOnly").checked = !!ch.isEditorOnly;
+    document.getElementById("renameChannelModal").classList.remove("hidden");
+  };
+
+  document.getElementById("closeRenameChannelModal").onclick = () => {
+    document.getElementById("renameChannelModal").classList.add("hidden");
+  };
+
+  document.getElementById("confirmRenameChannelBtn").onclick = async () => {
+    if (!targetContextChannelId || !currentServerId) return;
+    const newNameRaw = document.getElementById("renameChannelInput").value.trim().toLowerCase().replace(/[\s#]/g, "-");
+    if (!newNameRaw) return showCustomAlert("Enter a channel name.", "Hold up!");
+    const isEditorOnly = document.getElementById("renameIsEditorOnly").checked;
+    const oldId = targetContextChannelId;
+    try {
+      if (newNameRaw !== oldId) {
+        // Rename key: copy then remove old
+        const oldData = activeServers[currentServerId].channels[oldId] || { name: oldId };
+        await set(ref(db, `servers/${currentServerId}/channels/${newNameRaw}`), { name: newNameRaw, isEditorOnly });
+        await remove(ref(db, `servers/${currentServerId}/channels/${oldId}`));
+        if (currentContext.type === 'channel' && currentContext.id === oldId) {
+          switchContext('channel', newNameRaw);
+        }
+      } else {
+        await update(ref(db, `servers/${currentServerId}/channels/${oldId}`), { name: newNameRaw, isEditorOnly });
+      }
+      document.getElementById("renameChannelModal").classList.add("hidden");
+      showCustomAlert("Channel updated!", "Saved");
+    } catch (err) {
+      showCustomAlert("Failed to update channel.", "Error");
+    }
+  };
+
+  document.getElementById("btnDeleteChannelCtx").onclick = async () => {
+    channelContextMenu.classList.add("hidden");
+    if (!targetContextChannelId || !currentServerId) return;
+    const ok = await showCustomConfirm(`Delete channel #${targetContextChannelId}? This cannot be undone.`, "Delete Channel");
+    if (!ok) return;
+    try {
+      await remove(ref(db, `servers/${currentServerId}/channels/${targetContextChannelId}`));
+      if (currentContext.type === 'channel' && currentContext.id === targetContextChannelId) {
+        const server = activeServers[currentServerId];
+        const remaining = Object.keys((server && server.channels) || {}).filter(k => k !== targetContextChannelId);
+        if (remaining.length > 0) switchContext('channel', remaining[0]);
+        else { currentContext = { type: 'channel', id: '' }; messagesEl.innerHTML = ""; document.getElementById("headerTitle").textContent = "select-a-chat"; }
+      }
+      renderSidebarChannels();
+    } catch (err) {
+      showCustomAlert("Failed to delete channel.", "Error");
+    }
+  };
+
   document.getElementById("headerTitleClickArea").onclick = () => {
     if (currentContext.type === 'group') {
       openGroupDetailsModal(currentContext.id);
     }
   };
+  document.getElementById("headerTitleClickArea").oncontextmenu = (e) => {
+    if (currentContext.type !== 'group' || !currentContext.id) return;
+    const group = activeGroups[currentContext.id];
+    if (!group || !canManageGroup(group, username)) return;
+    e.preventDefault(); e.stopPropagation();
+    targetContextGroupId = currentContext.id;
+    const gMenu = document.getElementById("groupContextMenu");
+    gMenu.classList.remove("hidden");
+    gMenu.style.left = `${e.clientX}px`;
+    gMenu.style.top = `${e.clientY}px`;
+  };
+
+
 
   document.addEventListener("click", () => {
     plusMenu.classList.add("hidden");
@@ -1255,8 +1595,12 @@
     memberRoleMenu.classList.add("hidden");
     serverContextMenu.classList.add("hidden");
     groupContextMenu.classList.add("hidden");
+    channelContextMenu.classList.add("hidden");
     inboxPopup.classList.add("hidden");
+    const gmm = document.getElementById("groupMemberMenu");
+    if (gmm) gmm.classList.add("hidden");
   });
+
 
   profilePopover.addEventListener("click", (e) => e.stopPropagation());
 
@@ -1384,11 +1728,16 @@
     if (call.status === 'active') {
       const elapsed = call.started_at ? (Date.now() - new Date(call.started_at).getTime()) / 1000 : 0;
       const rejoinBtn = (activeCallId === callId) ? "" : `<button class="server-invite-join-btn" style="background:#23a55a; margin:0 0 0 10px; padding:6px 12px;" data-action="rejoin-call" data-call-id="${escapeHtml(callId)}">Rejoin</button>`;
-      return `${CALL_ICON_GREEN}<span style="color:#dbdee1;">In Call · <span class="call-live-timer" data-call-id="${escapeHtml(callId)}">${formatDuration(elapsed)}</span></span>${rejoinBtn}`;
+      const label = call.type === 'group' ? 'Group Call' : 'In Call';
+      return `${CALL_ICON_GREEN}<span style="color:#dbdee1;">${label} · <span class="call-live-timer" data-call-id="${escapeHtml(callId)}">${formatDuration(elapsed)}</span></span>${rejoinBtn}`;
+    }
+    if (call.type === 'group') {
+      return `${CALL_ICON_GREEN}<span style="color:#dbdee1;">Group Video Call</span><button class="server-invite-join-btn" style="background:#23a55a; margin:0 0 0 10px; padding:6px 12px;" data-action="join-call" data-call-id="${escapeHtml(callId)}">Join?</button>`;
     }
     if (isOwn) return `${CALL_ICON_MUTED}<span style="color:#dbdee1;">Calling ${escapeHtml(call.callee || "")}...</span>`;
     return `${CALL_ICON_GREEN}<span style="color:#dbdee1;">Incoming Video Call</span><button class="server-invite-join-btn" style="background:#23a55a; margin:0 0 0 10px; padding:6px 12px;" data-action="join-call" data-call-id="${escapeHtml(callId)}">Join?</button>`;
   }
+
 
   function callWidgetColorForStatus(status) {
     if (status === 'active') return { border: '#23a55a', bg: 'rgba(35, 165, 90, 0.1)' };
@@ -1425,6 +1774,7 @@
     updateRemoteVideoAvatarState(call);
   }
 
+  let ghostCallCheckCounter = 0;
   function ensureGlobalTimer() {
     if (globalTimerInterval) return;
     globalTimerInterval = setInterval(() => {
@@ -1434,24 +1784,45 @@
         if (call && call.status === 'active' && call.started_at) el.textContent = formatDuration((Date.now() - new Date(call.started_at).getTime()) / 1000);
       });
       updateModalCallUI();
+      // Every ~5s: end ghost group calls where nobody is joined anymore
+      ghostCallCheckCounter++;
+      if (ghostCallCheckCounter >= 5) {
+        ghostCallCheckCounter = 0;
+        Object.entries(allCalls).forEach(async ([cId, call]) => {
+          if (!call || call.type !== 'group' || call.status === 'ended') return;
+          // Don't touch the call we're currently in
+          if (activeCallId === cId) return;
+          try {
+            const snap = await get(ref(db, `calls/${cId}/joined`));
+            const joined = snap.val();
+            const remaining = joined ? Object.keys(joined).filter(k => joined[k]) : [];
+            if (remaining.length === 0) {
+              await update(ref(db, `calls/${cId}`), { status: 'ended', ended_at: new Date().toISOString() });
+            }
+          } catch (e) {}
+        });
+      }
     }, 1000);
   }
 
-  function showCallNotification(caller, callId) {
-    callNotifSender.textContent = `Call from ${caller}`;
+
+  function showCallNotification(caller, callId, isGroup = false, groupId = null) {
+    callNotifSender.textContent = isGroup ? `Group call from ${caller}` : `Call from ${caller}`;
     const joinBtn = document.getElementById("callNotifJoinBtn");
     const joinAction = (e) => {
       if (e) e.stopPropagation();
       callNotificationBanner.classList.add("hidden");
-      activeDms.add(caller.toLowerCase());
-      currentView = 'home';
-      currentServerId = null;
-      document.querySelectorAll(".server-icon").forEach(el => el.classList.remove("active"));
-      document.getElementById("homeBtn").classList.add("active");
-      document.getElementById("serverNameLabel").textContent = "Direct Messages";
-      document.getElementById("addPersonTopBtn").classList.add("hidden");
-      document.getElementById("serverSettingsBtn").classList.add("hidden");
-      switchContext('dm', caller);
+      if (isGroup && groupId) {
+        // Stay in / switch to the group — never create a fake DM
+        if (currentContext.type !== 'group' || currentContext.id !== groupId) {
+          switchToHomeView();
+          switchContext('group', groupId);
+        }
+      } else {
+        activeDms.add(caller.toLowerCase());
+        switchToHomeView();
+        switchContext('dm', caller);
+      }
       acceptCall(callId);
     };
     callNotificationBanner.onclick = joinAction;
@@ -1462,12 +1833,21 @@
     if (document.hidden || !document.hasFocus()) playNotificationSound();
   }
 
+
   async function acceptCall(callId) {
     const call = allCalls[callId];
-    if (!call || call.status !== 'ringing' || activeCallId || acceptingCallIds.has(callId)) return;
+    if (!call || activeCallId || acceptingCallIds.has(callId)) return;
+    if (call.type === 'group') {
+      if (call.status === 'ended') return;
+      acceptingCallIds.add(callId);
+      try { await startGroupWebRTC(callId, false); } finally { acceptingCallIds.delete(callId); }
+      return;
+    }
+    if (call.status !== 'ringing') return;
     acceptingCallIds.add(callId);
     try { await startWebRTC(callId, false); } finally { acceptingCallIds.delete(callId); }
   }
+
 
   function bootToFirstAvailableDm() {
     const cleanDms = Array.from(activeDms).filter(u => u.toLowerCase() !== username.toLowerCase());
@@ -1547,7 +1927,17 @@
     onValue(ref(db, 'groups'), (snapshot) => {
       activeGroups = snapshot.val() || {};
       renderSidebarChannels();
+      // Keep header title/icon in sync if we're viewing a group that was renamed/updated
+      if (currentContext.type === 'group' && currentContext.id && activeGroups[currentContext.id]) {
+        const g = activeGroups[currentContext.id];
+        const title = g.name || formatGroupName(g.members || []);
+        document.getElementById("headerTitle").textContent = title;
+        document.getElementById("message").placeholder = `Message ${title}`;
+        updateHeaderAvatar(); // refresh group icon in the top bar
+      }
+      if (showMemberList) renderMemberList();
     });
+
 
     onValue(ref(db, 'typing'), (snapshot) => {
       serverTypingMap = snapshot.val() || {};
@@ -1573,15 +1963,20 @@
     function handleCallUpdate(cId, call) {
       allCalls[cId] = call;
       if (!callsInitialized) { knownCallIds.add(cId); return; }
-      const isNewRingingForMe = call && call.status === 'ringing' && call.callee && call.callee.toLowerCase() === username.toLowerCase() && call.caller && call.caller.toLowerCase() !== username.toLowerCase() && !knownCallIds.has(cId);
+      const isNewRingingForMe = call && !call.type && call.status === 'ringing' && call.callee && call.callee.toLowerCase() === username.toLowerCase() && call.caller && call.caller.toLowerCase() !== username.toLowerCase() && !knownCallIds.has(cId);
+      // Group call notification: any participant who isn't the starter sees a new active group call
+      const isNewGroupCallForMe = call && call.type === 'group' && call.status === 'active' && call.caller && call.caller.toLowerCase() !== username.toLowerCase() && Array.isArray(call.participants) && call.participants.some(p => p.toLowerCase() === username.toLowerCase()) && !knownCallIds.has(cId);
       knownCallIds.add(cId);
-      if (isNewRingingForMe) showCallNotification(call.caller, cId);
+      if (isNewRingingForMe) showCallNotification(call.caller, cId, false);
+      if (isNewGroupCallForMe) showCallNotification(call.caller, cId, true, call.groupId);
+
       if (activeCallId === cId && (!call || call.status === 'ended')) endCall(false);
       if (call && call.status === 'ended' && !callCleanupTimers[cId]) {
         callCleanupTimers[cId] = setTimeout(() => { delete callCleanupTimers[cId]; remove(ref(db, `calls/${cId}`)).catch(() => {}); remove(ref(db, `call_signals/${cId}`)).catch(() => {}); }, 60000);
       }
       refreshAllCallMessages();
     }
+
     onChildAdded(callsRef, (snap) => handleCallUpdate(snap.key, snap.val()));
     onChildChanged(callsRef, (snap) => handleCallUpdate(snap.key, snap.val()));
     onChildRemoved(callsRef, (snap) => { delete allCalls[snap.key]; if (callCleanupTimers[snap.key]) { clearTimeout(callCleanupTimers[snap.key]); delete callCleanupTimers[snap.key]; } refreshAllCallMessages(); });
@@ -1626,7 +2021,10 @@
     cachedMessages = Array.from(messagesById.values());
     renderMessages();
 
-    function upsertMessage(key, val) {
+    function upsertMessage(key, val, isChange) {
+      const prev = messagesById.get(key);
+      // Skip no-op re-delivery of the initial snapshot from onChildAdded
+      if (!isChange && prev) return;
       const msg = { id: key, ...val };
       messagesById.set(key, msg);
       if (!knownMessageIds.has(msg.id)) {
@@ -1644,10 +2042,11 @@
       }
       scheduleRender();
     }
-    onChildAdded(messagesQuery, (snap) => upsertMessage(snap.key, snap.val()));
-    onChildChanged(messagesQuery, (snap) => upsertMessage(snap.key, snap.val()));
+    onChildAdded(messagesQuery, (snap) => upsertMessage(snap.key, snap.val(), false));
+    onChildChanged(messagesQuery, (snap) => upsertMessage(snap.key, snap.val(), true));
     onChildRemoved(messagesQuery, (snap) => { messagesById.delete(snap.key); scheduleRender(); });
   }
+
 
   function playNotificationSound() {
     try {
@@ -1749,13 +2148,17 @@
   }
 
   messagesEl.addEventListener("click", async (e) => {
-    const joinCallBtn = e.target.closest('[data-action="join-call"]'); if (joinCallBtn) { e.stopPropagation(); acceptCall(joinCallBtn.dataset.callId); return; }
-    const rejoinCallBtn = e.target.closest('[data-action="rejoin-call"]'); if (rejoinCallBtn) { e.stopPropagation(); const cId = rejoinCallBtn.dataset.callId; const call = allCalls[cId]; if (call && call.status === 'active' && !activeCallId) startWebRTC(cId, call.caller && call.caller.toLowerCase() === username.toLowerCase()); return; }
-    const btn = e.target.closest(".server-invite-join-btn[data-server-id]"); if (!btn || btn.disabled) return;
-    e.stopPropagation(); const serverId = btn.dataset.serverId; const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
-    try { await set(ref(db, `servers/${serverId}/members/${mySanitized}`), { username, role: 'member' }); showCustomAlert("You joined the server!", "Welcome!"); renderMessages(true); }
-    catch (err) { showCustomAlert("Failed to join server.", "Error"); }
-  });
+    const joinCallBtn = e.target.closest('[data-action="join-call"]'); if (joinCallBtn) { e.stopPropagation(); e.preventDefault(); acceptCall(joinCallBtn.dataset.callId); return; }
+    const rejoinCallBtn = e.target.closest('[data-action="rejoin-call"]'); if (rejoinCallBtn) { e.stopPropagation(); e.preventDefault(); const cId = rejoinCallBtn.dataset.callId; const call = allCalls[cId]; if (call && call.status === 'active' && !activeCallId) { if (call.type === 'group') startGroupWebRTC(cId, false); else startWebRTC(cId, call.caller && call.caller.toLowerCase() === username.toLowerCase()); } return; }
+
+    const btn = e.target.closest(".server-invite-join-btn[data-server-id]"); if (btn && !btn.disabled) {
+      e.stopPropagation(); e.preventDefault();
+      const serverId = btn.dataset.serverId; const mySanitized = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      try { await set(ref(db, `servers/${serverId}/members/${mySanitized}`), { username, role: 'member' }); showCustomAlert("You joined the server!", "Welcome!"); renderMessages(true); }
+      catch (err) { showCustomAlert("Failed to join server.", "Error"); }
+      return;
+    }
+  }, true); // capture phase so it fires before message div.onclick stopPropagation
 
   document.getElementById("homeBtn").onclick = () => switchToHomeView();
   function switchToHomeView() {
@@ -1795,23 +2198,49 @@
       const dmListDiv = document.createElement("div");
       activeDms.forEach(otherUserLower => {
         if (otherUserLower.toLowerCase() === username.toLowerCase()) return;
+        // Skip fake entries created by old group-call notifications (e.g. "alice (group)")
+        if (/\(group\)$/i.test(otherUserLower)) { activeDms.delete(otherUserLower); return; }
+        // Only show real registered users
+        if (!userProfiles[otherUserLower] && !Object.keys(userProfiles).some(u => u.toLowerCase() === otherUserLower)) return;
         const profile = userProfiles[otherUserLower] || {}; const otherUser = profile.username || otherUserLower;
         const item = document.createElement("div"); item.className = `channel-item ${currentContext.type === 'dm' && currentContext.id.toLowerCase() === otherUserLower ? 'active' : ''}`;
         const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : ''; const status = getUserStatus(otherUser);
         item.innerHTML = `<div class="dm-user-avatar" style="${avatarStyle}">${profile.avatar_url ? '' : escapeHtml(otherUser.charAt(0).toUpperCase())}<div class="status-dot ${status}"></div></div><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(otherUser)}</span>`;
         item.onclick = () => switchContext('dm', otherUser); dmListDiv.appendChild(item);
       });
+
       container.appendChild(dmListDiv);
       const groupSectionHeader = document.createElement("div"); groupSectionHeader.className = "sidebar-section"; groupSectionHeader.style.marginTop = "16px"; groupSectionHeader.innerHTML = `<span>Group Chats</span><span class="add-btn" id="btnNewGroup" title="Create Group Chat">+</span>`; container.appendChild(groupSectionHeader);
       const groupListDiv = document.createElement("div");
+      const seenGroupIds = new Set();
       Object.entries(activeGroups).forEach(([gId, group]) => {
-        const members = group.members || []; if (members.includes(username) || isDev(username)) {
-          const formattedTitle = formatGroupName(members); const item = document.createElement("div"); item.className = `channel-item ${currentContext.type === 'group' && currentContext.id === gId ? 'active' : ''}`;
-          item.innerHTML = `<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(formattedTitle)}</span>`;
-          item.onclick = () => switchContext('group', gId); if (isDev(username)) { item.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); targetContextGroupId = gId; const gMenu = document.getElementById("groupContextMenu"); gMenu.classList.remove("hidden"); gMenu.style.left = `${e.clientX}px`; gMenu.style.top = `${e.clientY}px`; }; }
-          groupListDiv.appendChild(item);
+        if (seenGroupIds.has(gId)) return;
+        seenGroupIds.add(gId);
+        const members = group.members || [];
+        const isMember = members.some(m => m && m.toLowerCase() === username.toLowerCase()) || isDev(username);
+        if (!isMember) return;
+        const formattedTitle = group.name || formatGroupName(members);
+        const item = document.createElement("div");
+        item.className = `channel-item ${currentContext.type === 'group' && currentContext.id === gId ? 'active' : ''}`;
+        const iconStyle = group.icon ? `background-image: url('${group.icon}');` : '';
+        const iconInitial = group.icon ? '' : escapeHtml((formattedTitle || "G").charAt(0).toUpperCase());
+        item.innerHTML = `<div class="dm-user-avatar" style="${iconStyle}">${iconInitial}</div><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(formattedTitle)}</span>`;
+        item.onclick = () => switchContext('group', gId);
+        if (canManageGroup(group, username)) {
+          item.oncontextmenu = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            targetContextGroupId = gId;
+            const gMenu = document.getElementById("groupContextMenu");
+            gMenu.classList.remove("hidden");
+            gMenu.style.left = `${e.clientX}px`;
+            gMenu.style.top = `${e.clientY}px`;
+          };
         }
+
+        groupListDiv.appendChild(item);
       });
+
+
       container.appendChild(groupListDiv);
       document.getElementById("btnNewDm").onclick = () => { document.getElementById("newDmUsernameInput").value = ""; populateUserSelectList(); document.getElementById("newDmModal").classList.remove("hidden"); };
       document.getElementById("btnNewGroup").onclick = () => { selectedGroupUsers.clear(); populateGroupUserSelectList(); document.getElementById("createGroupModal").classList.remove("hidden"); };
@@ -1822,7 +2251,18 @@
       const channelListDiv = document.createElement("div"); const channels = server.channels || {};
       Object.entries(channels).forEach(([chId, ch]) => {
         const item = document.createElement("div"); item.className = `channel-item ${currentContext.type === 'channel' && currentContext.id === chId ? 'active' : ''}`;
-        item.innerHTML = `<span class="prefix">#</span><span>${escapeHtml(ch.name)}</span>`; item.onclick = () => switchContext('channel', chId); channelListDiv.appendChild(item);
+        item.innerHTML = `<span class="prefix">#</span><span>${escapeHtml(ch.name)}</span>`;
+        item.onclick = () => switchContext('channel', chId);
+        if (canManageChannels) {
+          item.oncontextmenu = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            targetContextChannelId = chId;
+            channelContextMenu.classList.remove("hidden");
+            channelContextMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 180)}px`;
+            channelContextMenu.style.top = `${Math.min(e.clientY, window.innerHeight - 120)}px`;
+          };
+        }
+        channelListDiv.appendChild(item);
       });
       container.appendChild(channelListDiv);
       if (canManageChannels) document.getElementById("btnNewChannel").onclick = () => { document.getElementById("newThreadInput").value = ""; document.getElementById("isEditorOnlyChannel").checked = false; document.getElementById("newThreadModal").classList.remove("hidden"); };
@@ -1847,17 +2287,25 @@
   function switchContext(type, id) {
     currentContext = { type, id }; const headerAvatarContainer = document.getElementById("headerAvatarContainer"); const messageInput = document.getElementById("message");
     messageInput.disabled = false; if (type === 'dm') activeDms.add(id.toLowerCase());
-    if (type === 'dm' && id.toLowerCase() !== username.toLowerCase()) videoCallBtn.classList.remove("hidden"); else videoCallBtn.classList.add("hidden");
+    if ((type === 'dm' && id.toLowerCase() !== username.toLowerCase()) || type === 'group') videoCallBtn.classList.remove("hidden"); else videoCallBtn.classList.add("hidden");
+
     if (type === 'channel') {
       const server = activeServers[currentServerId]; const ch = server && server.channels ? server.channels[id] : null; const chName = ch ? ch.name : id;
       document.getElementById("headerPrefix").textContent = "#"; document.getElementById("headerTitle").textContent = chName; messageInput.placeholder = `Message #${chName}`; headerAvatarContainer.classList.add("hidden");
       if (ch && ch.isEditorOnly) { const myRole = getUserServerRole(currentServerId, username); if (myRole !== 'creator' && myRole !== 'co-creator' && myRole !== 'editor' && !isDev(username)) { messageInput.disabled = true; messageInput.placeholder = "Only Editors and Creators can type in this channel"; } }
     } else if (type === 'group') {
-      const group = activeGroups[id] || {}; const formattedTitle = formatGroupName(group.members || []); document.getElementById("headerPrefix").textContent = ""; document.getElementById("headerTitle").textContent = formattedTitle; messageInput.placeholder = `Message Group`; headerAvatarContainer.classList.add("hidden");
+      const group = activeGroups[id] || {};
+      const formattedTitle = group.name || formatGroupName(group.members || []);
+      document.getElementById("headerPrefix").textContent = "";
+      document.getElementById("headerTitle").textContent = formattedTitle;
+      messageInput.placeholder = `Message ${formattedTitle}`;
+      headerAvatarContainer.classList.remove("hidden");
+      updateHeaderAvatar(); // now also handles group icons
     } else {
+
       const isSelfNote = id.toLowerCase() === username.toLowerCase(); document.getElementById("headerPrefix").textContent = isSelfNote ? "📝" : "@"; document.getElementById("headerTitle").textContent = isSelfNote ? "Notes to Self" : id; messageInput.placeholder = isSelfNote ? "Jot something down..." : `Message @${id}`; headerAvatarContainer.classList.remove("hidden"); updateHeaderAvatar();
     }
-    clearReplyState(); messagesEl.innerHTML = ""; renderedMessageIds.clear(); renderMessages(true); renderMemberList(); renderTypingIndicator();
+    clearReplyState(); messagesEl.innerHTML = ""; renderedMessageIds.clear(); renderMessages(true); renderSidebarChannels(); renderMemberList(); renderTypingIndicator();
   }
 
   function getDmRoomId(userA, userB) { return [userA.trim().toLowerCase(), userB.trim().toLowerCase()].sort().join(":"); }
@@ -1896,13 +2344,67 @@
     else { overlay.classList.add("hidden"); videoEl.classList.remove("hidden"); }
   }
 
+  // Safely acquire camera/mic. Stops any leftover tracks first to avoid "device in use" / NotReadableError.
+  async function acquireLocalMedia() {
+    if (localStream) {
+      try { localStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+      localStream = null;
+    }
+    const constraints = {
+      video: { width: { ideal: 640, max: 1280 }, height: { ideal: 360, max: 720 }, frameRate: { ideal: 20, max: 30 } },
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    };
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      // Retry once with simpler constraints (some devices reject ideal values)
+      try {
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (err2) {
+        const name = err2.name || err.name || "";
+        let msg = "Camera or Microphone access denied.";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          msg = "Camera/Microphone permission was denied. Please allow access in your browser settings and try again.";
+        } else if (name === "NotReadableError" || name === "TrackStartError") {
+          msg = "Camera or Microphone is already in use by another app/tab. Close other apps using it and try again.";
+        } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          msg = "No camera or microphone found on this device.";
+        } else if (err2.message) {
+          msg = "Could not access camera/microphone: " + err2.message;
+        }
+        throw new Error(msg);
+      }
+    }
+  }
+
   window.startWebRTC = async function(callId, isCaller) {
     if (activeCallId) return; activeCallId = callId; callIsCaller = isCaller; isMicMuted = false; isVideoOff = false;
     document.getElementById("videoCallModal").classList.remove("hidden"); document.getElementById("remoteAvatarOverlay").classList.add("hidden"); document.getElementById("localAvatarOverlay").classList.add("hidden"); document.getElementById("localVideo").classList.remove("hidden"); document.getElementById("remoteVideo").classList.remove("hidden");
-    updateMuteButtonUI(); updateVideoButtonUI(); updateModalCallUI();
-    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); document.getElementById("localVideo").srcObject = localStream; }
-    catch (err) { showCustomAlert("Camera or Microphone access denied.", "Device Error"); endCall(isCaller); return; }
+    updateMuteButtonUI(); updateVideoButtonUI(); updateEndOrLeaveCallLabel(); updateModalCallUI();
+    try {
+      localStream = await acquireLocalMedia();
+      document.getElementById("localVideo").srcObject = localStream;
+    } catch (err) {
+      showCustomAlert(err.message || "Camera or Microphone access denied.", "Device Error");
+      endCall(isCaller);
+      return;
+    }
+
     pc = new RTCPeerConnection(RTC_ICE_SERVERS); localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    // Cap video bitrate to reduce latency/bandwidth on poor connections
+    setTimeout(async () => {
+      try {
+        for (const sender of pc.getSenders()) {
+          if (sender.track && sender.track.kind === 'video') {
+            const params = sender.getParameters();
+            if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+            params.encodings[0].maxBitrate = 600000; // ~600 kbps
+            params.encodings[0].maxFramerate = 20;
+            await sender.setParameters(params);
+          }
+        }
+      } catch (e) {}
+    }, 800);
     pc.ontrack = event => { if(event.streams && event.streams[0]) document.getElementById("remoteVideo").srcObject = event.streams[0]; };
     pc.oniceconnectionstatechange = () => { if (pc && (pc.iceConnectionState === 'failed')) if (pc.restartIce) pc.restartIce(); };
     resetCallChatState();
@@ -1926,17 +2428,336 @@
     updateModalCallUI();
   };
 
+  // ---- GROUP CALL (mesh WebRTC) ----
+  function ensureRemoteVideoSlot(remoteUser) {
+    if (remoteVideoEls.has(remoteUser)) return remoteVideoEls.get(remoteUser);
+    const grid = document.getElementById("remoteVideosGrid");
+    // If still in single mode, convert
+    if (grid.querySelector("#remoteVideoWrapSingle")) {
+      grid.innerHTML = "";
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "remote-video-wrap";
+    wrap.id = `remoteWrap_${remoteUser.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    const vid = document.createElement("video");
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.muted = false;
+    vid.setAttribute('playsinline', '');
+    vid.setAttribute('autoplay', '');
+    const label = document.createElement("div");
+    label.className = "remote-video-label";
+    label.textContent = remoteUser;
+    wrap.appendChild(vid);
+    wrap.appendChild(label);
+    grid.appendChild(wrap);
+    remoteVideoEls.set(remoteUser, vid);
+    updateRemoteGridLayout();
+    return vid;
+  }
+
+  function updateRemoteGridLayout() {
+    const grid = document.getElementById("remoteVideosGrid");
+    const n = remoteVideoEls.size || 1;
+    grid.className = n <= 1 ? "grid-1" : n === 2 ? "grid-2" : n <= 4 ? "grid-4" : "grid-many";
+  }
+
+  function removeRemoteVideoSlot(remoteUser) {
+    const vid = remoteVideoEls.get(remoteUser);
+    if (vid && vid.parentNode) vid.parentNode.remove();
+    remoteVideoEls.delete(remoteUser);
+    updateRemoteGridLayout();
+  }
+
+  async function createPeerConnectionFor(remoteUser, callId, polite) {
+    if (peerConnections.has(remoteUser)) return peerConnections.get(remoteUser);
+    const conn = new RTCPeerConnection(RTC_ICE_SERVERS);
+    peerConnections.set(remoteUser, conn);
+    if (localStream) localStream.getTracks().forEach(t => conn.addTrack(t, localStream));
+    // Cap video bitrate per peer for better performance on poor connections
+    setTimeout(async () => {
+      try {
+        for (const sender of conn.getSenders()) {
+          if (sender.track && sender.track.kind === 'video') {
+            const params = sender.getParameters();
+            if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+            params.encodings[0].maxBitrate = 500000;
+            params.encodings[0].maxFramerate = 20;
+            await sender.setParameters(params);
+          }
+        }
+      } catch (e) {}
+    }, 1000);
+    conn.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        const vid = ensureRemoteVideoSlot(remoteUser);
+        vid.srcObject = event.streams[0];
+        // Browsers sometimes need an explicit play() after setting srcObject
+        vid.play().catch(() => {});
+      }
+    };
+    conn.oniceconnectionstatechange = () => {
+      if (conn.iceConnectionState === 'failed' && conn.restartIce) try { conn.restartIce(); } catch(e){}
+      if (conn.iceConnectionState === 'closed' || conn.connectionState === 'closed') {
+        removeRemoteVideoSlot(remoteUser);
+        peerConnections.delete(remoteUser);
+        dataChannels.delete(remoteUser);
+      }
+    };
+    conn.onconnectionstatechange = () => {
+      if (conn.connectionState === 'closed' || conn.connectionState === 'failed') {
+        removeRemoteVideoSlot(remoteUser);
+        peerConnections.delete(remoteUser);
+        dataChannels.delete(remoteUser);
+      }
+    };
+
+    // Data channel for in-call chat (multi-peer)
+    if (polite) {
+      // The "polite" peer waits for the other side to create the channel, or we create if we are the offerer
+    }
+    // Always create data channel from the side that creates the offer
+    const mySan = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const remoteSan = remoteUser.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const signalBase = `call_signals/${callId}/peers/${mySan}_to_${remoteSan}`;
+    const theirCandidatesPath = `call_signals/${callId}/peers/${remoteSan}_to_${mySan}/candidates`;
+    conn.onicecandidate = (event) => {
+      if (event.candidate) {
+        push(ref(db, `${signalBase}/candidates`), event.candidate.toJSON()).catch(() => {});
+      }
+    };
+    // Listen for remote ICE (future)
+    const unsubIce = onChildAdded(ref(db, theirCandidatesPath), (snap) => {
+      const data = snap.val();
+      if (data && conn.signalingState !== 'closed') conn.addIceCandidate(new RTCIceCandidate(data)).catch(() => {});
+    });
+    callUnsubscribes.push(unsubIce);
+    // Also pull any candidates that already arrived before this listener was attached (critical for late joiners / black screen)
+    get(ref(db, theirCandidatesPath)).then(snap => {
+      const val = snap.val();
+      if (val && conn.signalingState !== 'closed') {
+        Object.values(val).forEach(c => {
+          try { conn.addIceCandidate(new RTCIceCandidate(c)).catch(() => {}); } catch (e) {}
+        });
+      }
+    }).catch(() => {});
+    return conn;
+  }
+
+  async function negotiateWith(remoteUser, callId, isOfferer) {
+    const conn = await createPeerConnectionFor(remoteUser, callId, !isOfferer);
+    const mySan = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const remoteSan = remoteUser.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    const myPath = `call_signals/${callId}/peers/${mySan}_to_${remoteSan}`;
+    const theirPath = `call_signals/${callId}/peers/${remoteSan}_to_${mySan}`;
+
+    if (isOfferer) {
+      // Create data channel for chat
+      const dc = conn.createDataChannel('call-chat', { ordered: true });
+      setupGroupCallChatDataChannel(dc, remoteUser);
+      const offer = await conn.createOffer();
+      await conn.setLocalDescription(offer);
+      await set(ref(db, `${myPath}/offer`), { sdp: offer.sdp, type: offer.type });
+      // Wait for answer
+      const unsubAns = onValue(ref(db, `${theirPath}/answer`), async (snap) => {
+        const data = snap.val();
+        if (data && conn && !conn.currentRemoteDescription) {
+          await conn.setRemoteDescription(new RTCSessionDescription(data));
+        }
+      });
+      callUnsubscribes.push(unsubAns);
+    } else {
+      // Wait for their offer, then answer
+      const unsubOff = onValue(ref(db, `${theirPath}/offer`), async (snap) => {
+        const data = snap.val();
+        if (!data || !conn || conn.currentRemoteDescription) return;
+        await conn.setRemoteDescription(new RTCSessionDescription(data));
+        // Data channel from remote
+        conn.ondatachannel = (ev) => setupGroupCallChatDataChannel(ev.channel, remoteUser);
+        const answer = await conn.createAnswer();
+        await conn.setLocalDescription(answer);
+        await set(ref(db, `${myPath}/answer`), { sdp: answer.sdp, type: answer.type });
+      });
+      callUnsubscribes.push(unsubOff);
+    }
+  }
+
+  window.startGroupWebRTC = async function(callId, isInitiator) {
+    if (activeCallId) return;
+    activeCallId = callId;
+    isGroupCall = true;
+    callIsCaller = isInitiator;
+    isMicMuted = false;
+    isVideoOff = false;
+    document.getElementById("videoCallModal").classList.remove("hidden");
+    document.getElementById("localAvatarOverlay").classList.add("hidden");
+    document.getElementById("localVideo").classList.remove("hidden");
+    updateMuteButtonUI(); updateVideoButtonUI(); updateEndOrLeaveCallLabel();
+    try {
+      localStream = await acquireLocalMedia();
+      document.getElementById("localVideo").srcObject = localStream;
+    } catch (err) {
+      showCustomAlert(err.message || "Camera or Microphone access denied.", "Device Error");
+      // Clean up so user can retry
+      activeCallId = null;
+      isGroupCall = false;
+      document.getElementById("videoCallModal").classList.add("hidden");
+      return;
+    }
+
+    resetCallChatState();
+    // Mark ourselves joined — only remove OUR joined entry on disconnect (don't end whole call)
+    const mySan = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+    try { await update(ref(db, `calls/${callId}/joined`), { [mySan]: true }); } catch(e){}
+    onDisconnect(ref(db, `calls/${callId}/joined/${mySan}`)).remove();
+    // NOTE: do NOT onDisconnect status=ended for group calls — that would kill the call for everyone when one person closes the tab
+
+
+    const call = allCalls[callId] || {};
+    groupCallParticipants = (call.participants || []).filter(u => u.toLowerCase() !== username.toLowerCase());
+
+    // Only connect to people who are currently joined. Late joiners are handled by the listener below.
+    // This avoids creating offers to users who never join the call.
+    // Deterministic offerer: lexicographically smaller username creates the offer.
+    const initialJoinedSnap = await get(ref(db, `calls/${callId}/joined`));
+    const initialJoined = initialJoinedSnap.val() || {};
+    for (const other of groupCallParticipants) {
+      const otherSan = other.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      if (!initialJoined[otherSan]) continue; // not in call yet
+      const amOfferer = username.toLowerCase() < other.toLowerCase();
+      await negotiateWith(other, callId, amOfferer);
+    }
+
+    // Listen for joiners AND leavers
+    const unsubJoined = onValue(ref(db, `calls/${callId}/joined`), (snap) => {
+      const joined = snap.val() || {};
+      const joinedSans = new Set(Object.keys(joined));
+      // Add new peers who just joined
+      Object.keys(joined).forEach(san => {
+        const other = (call.participants || []).find(u => u.toLowerCase().replace(/[.#$/\[\]]/g, "_") === san);
+        if (!other || other.toLowerCase() === username.toLowerCase()) return;
+        if (!peerConnections.has(other)) {
+          const amOfferer = username.toLowerCase() < other.toLowerCase();
+          negotiateWith(other, callId, amOfferer);
+        }
+      });
+      // Remove peers who left
+      peerConnections.forEach((conn, remoteUser) => {
+        const san = remoteUser.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+        if (!joinedSans.has(san)) {
+          try { conn.close(); } catch(e){}
+          peerConnections.delete(remoteUser);
+          dataChannels.delete(remoteUser);
+          removeRemoteVideoSlot(remoteUser);
+        }
+      });
+    });
+    callUnsubscribes.push(unsubJoined);
+
+    updateModalCallUI();
+  };
+
+  function updateEndOrLeaveCallLabel() {
+    const label = document.getElementById("endOrLeaveCallLabel");
+    if (label) label.textContent = isGroupCall ? "Leave Call" : "End Call";
+  }
+
+  window.endOrLeaveCall = async function() {
+    if (isGroupCall) {
+      await leaveGroupCall();
+    } else {
+      await endCall(true);
+    }
+  };
+
+  async function leaveGroupCall() {
+    const leavingCallId = activeCallId;
+    // 1. Stop sending media FIRST so peers see track-ended (not frozen last frame)
+    if (localStream) {
+      localStream.getTracks().forEach(track => { try { track.stop(); } catch(e){} });
+      localStream = null;
+    }
+    const localVid = document.getElementById("localVideo");
+    if (localVid) localVid.srcObject = null;
+    // 2. Close every peer connection so remotes get ice=closed / connectionState=closed
+    peerConnections.forEach((conn) => {
+      try {
+        conn.getSenders().forEach(s => { try { if (s.track) s.track.stop(); } catch(e){} });
+        conn.close();
+      } catch(e){}
+    });
+    peerConnections.clear();
+    dataChannels.clear();
+    remoteVideoEls.forEach((el) => { if (el && el.parentNode) el.parentNode.remove(); });
+    remoteVideoEls.clear();
+    // 3. Unsubscribe listeners
+    callUnsubscribes.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
+    callUnsubscribes = [];
+    // 4. Remove from joined map; if nobody remains, end the whole call
+    if (leavingCallId) {
+      const mySan = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
+      try {
+        await remove(ref(db, `calls/${leavingCallId}/joined/${mySan}`));
+        // Re-read joined after our remove — if empty (or only us somehow), end the call for everyone
+        const joinedSnap = await get(ref(db, `calls/${leavingCallId}/joined`));
+        const joinedVal = joinedSnap.val();
+        const remaining = joinedVal ? Object.keys(joinedVal).filter(k => joinedVal[k]) : [];
+        if (remaining.length === 0) {
+          await update(ref(db, `calls/${leavingCallId}`), { status: 'ended', ended_at: new Date().toISOString() });
+          setTimeout(() => {
+            remove(ref(db, `call_signals/${leavingCallId}`)).catch(() => {});
+          }, 4000);
+        }
+      } catch(e){}
+    }
+    // 5. Hide UI
+    const modal = document.getElementById("videoCallModal");
+    modal.classList.add("hidden"); modal.classList.remove("call-minimized", "chat-open");
+    exitAnyPip();
+    wipeCallChatState();
+    const grid = document.getElementById("remoteVideosGrid");
+    if (grid) {
+      grid.className = "grid-1";
+      grid.innerHTML = `<div class="remote-video-wrap" id="remoteVideoWrapSingle"><video id="remoteVideo" autoplay playsinline></video><div id="remoteAvatarOverlay" class="video-avatar-overlay hidden"><div id="remoteAvatarCircle" class="video-avatar-circle"></div></div></div>`;
+    }
+    activeCallId = null; isMicMuted = false; isVideoOff = false; isGroupCall = false; groupCallParticipants = [];
+  }
+
+
+
   window.endCall = async function(removeFromDB = true) {
     const endingCallId = activeCallId;
     const modal = document.getElementById("videoCallModal");
     modal.classList.add("hidden"); modal.classList.remove("call-minimized", "chat-open");
     exitAnyPip();
     wipeCallChatState(); /* ephemeral chat + attachments never outlive the call */
+    // Clean 1:1
     if (pc) { pc.close(); pc = null; }
-    if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; document.getElementById("localVideo").srcObject = null; document.getElementById("remoteVideo").srcObject = null; }
-    callUnsubscribes.forEach(unsub => { if (typeof unsub === 'function') unsub(); }); callUnsubscribes = []; activeCallId = null; isMicMuted = false; isVideoOff = false;
-    if (removeFromDB && endingCallId) { try { const snap = await get(ref(db, `calls/${endingCallId}/status`)); if (snap.exists() && snap.val() !== 'ended') await update(ref(db, `calls/${endingCallId}`), { status: 'ended', ended_at: new Date().toISOString() }); setTimeout(() => { remove(ref(db, `call_signals/${endingCallId}`)).catch(() => {}); }, 4000); } catch (e) {} }
+    // Clean multi-peer
+    peerConnections.forEach((conn) => { try { conn.close(); } catch(e){} });
+    peerConnections.clear();
+    dataChannels.clear();
+    remoteVideoEls.forEach((el) => { if (el && el.parentNode) el.parentNode.remove(); });
+    remoteVideoEls.clear();
+    // Reset grid to single
+    const grid = document.getElementById("remoteVideosGrid");
+    if (grid) {
+      grid.className = "grid-1";
+      grid.innerHTML = `<div class="remote-video-wrap" id="remoteVideoWrapSingle"><video id="remoteVideo" autoplay playsinline></video><div id="remoteAvatarOverlay" class="video-avatar-overlay hidden"><div id="remoteAvatarCircle" class="video-avatar-circle"></div></div></div>`;
+    }
+    if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; document.getElementById("localVideo").srcObject = null; const rv = document.getElementById("remoteVideo"); if (rv) rv.srcObject = null; }
+    callUnsubscribes.forEach(unsub => { if (typeof unsub === 'function') unsub(); }); callUnsubscribes = [];
+    activeCallId = null; isMicMuted = false; isVideoOff = false; isGroupCall = false; groupCallParticipants = [];
+    if (removeFromDB && endingCallId) {
+      try {
+        const snap = await get(ref(db, `calls/${endingCallId}/status`));
+        if (snap.exists() && snap.val() !== 'ended') await update(ref(db, `calls/${endingCallId}`), { status: 'ended', ended_at: new Date().toISOString() });
+        setTimeout(() => { remove(ref(db, `call_signals/${endingCallId}`)).catch(() => {}); }, 4000);
+      } catch (e) {}
+    }
   };
+
+
 
   function updateMuteButtonUI() {
     const btn = document.getElementById("toggleMuteBtn"); const icon = document.getElementById("micIcon"); btn.classList.toggle("toggled-off", isMicMuted); btn.title = isMicMuted ? "Unmute" : "Mute";
@@ -1986,6 +2807,8 @@
     callChatMessages = [];
     callChatIncomingFiles = {};
     if (callChatChannel) { try { callChatChannel.close(); } catch (e) {} callChatChannel = null; }
+    dataChannels.forEach(dc => { try { dc.close(); } catch(e){} });
+    dataChannels.clear();
     const msgsEl = document.getElementById("callChatMessages");
     if (msgsEl) msgsEl.innerHTML = '<div class="call-chat-empty" id="callChatEmpty">No messages yet. Say hi!</div>';
     const modal = document.getElementById("videoCallModal");
@@ -1998,10 +2821,27 @@
     channel.onopen = () => { document.getElementById("callChatDcStatus").textContent = "Connected — messages are peer-to-peer and not saved."; };
     channel.onclose = () => { document.getElementById("callChatDcStatus").textContent = "Disconnected"; };
     channel.onerror = () => { document.getElementById("callChatDcStatus").textContent = "Connection issue"; };
-    channel.onmessage = (event) => handleCallChatIncoming(event.data);
+    channel.onmessage = (event) => handleCallChatIncoming(event.data, null);
   }
 
-  function callChatPeerName() {
+  function setupGroupCallChatDataChannel(channel, remoteUser) {
+    channel.binaryType = 'arraybuffer';
+    dataChannels.set(remoteUser, channel);
+    channel.onopen = () => {
+      const openCount = Array.from(dataChannels.values()).filter(c => c.readyState === 'open').length;
+      document.getElementById("callChatDcStatus").textContent = `Connected to ${openCount} peer(s) — peer-to-peer, not saved.`;
+    };
+    channel.onclose = () => {
+      dataChannels.delete(remoteUser);
+      const openCount = Array.from(dataChannels.values()).filter(c => c.readyState === 'open').length;
+      document.getElementById("callChatDcStatus").textContent = openCount > 0 ? `Connected to ${openCount} peer(s)` : "Disconnected";
+    };
+    channel.onerror = () => {};
+    channel.onmessage = (event) => handleCallChatIncoming(event.data, remoteUser);
+  }
+
+  function callChatPeerName(fromUser) {
+    if (fromUser) return fromUser;
     const call = activeCallId ? allCalls[activeCallId] : null;
     return getRemotePeerName(call) || "Peer";
   }
@@ -2011,7 +2851,7 @@
     const emptyEl = document.getElementById("callChatEmpty"); if (emptyEl) emptyEl.remove();
     const container = document.getElementById("callChatMessages");
     const div = document.createElement("div"); div.className = "call-chat-msg";
-    const senderLabel = entry.own ? "You" : callChatPeerName();
+    const senderLabel = entry.own ? "You" : (entry.from || callChatPeerName());
     let inner = `<div class="ccm-sender ${entry.own ? 'me' : ''}">${escapeHtml(senderLabel)}</div>`;
     if (entry.type === 'text') inner += `<div class="ccm-text">${escapeHtml(entry.text)}</div>`;
     else if (entry.type === 'image') inner += `<img class="ccm-img" src="${entry.url}" alt="${escapeHtml(entry.name || 'image')}">`;
@@ -2021,45 +2861,54 @@
     container.scrollTop = container.scrollHeight;
   }
 
+  function getOpenChatChannels() {
+    if (isGroupCall) return Array.from(dataChannels.values()).filter(c => c.readyState === 'open');
+    if (callChatChannel && callChatChannel.readyState === 'open') return [callChatChannel];
+    return [];
+  }
+
   function sendCallChatText() {
     const input = document.getElementById("callChatInput");
     const text = input.value.trim(); if (!text) return;
     input.value = "";
-    if (!callChatChannel || callChatChannel.readyState !== 'open') { showCustomAlert("Chat isn't connected to your call partner yet.", "Not Connected"); return; }
-    callChatChannel.send(JSON.stringify({ kind: 'text', text }));
+    const channels = getOpenChatChannels();
+    if (channels.length === 0) { showCustomAlert("Chat isn't connected to your call partner(s) yet.", "Not Connected"); return; }
+    const payload = JSON.stringify({ kind: 'text', text, from: username });
+    channels.forEach(ch => { try { ch.send(payload); } catch(e){} });
     appendCallChatMessage({ type: 'text', text, own: true, ts: Date.now() });
   }
 
   async function sendCallChatImage(file) {
-    if (!callChatChannel || callChatChannel.readyState !== 'open') { showCustomAlert("Chat isn't connected to your call partner yet.", "Not Connected"); return; }
+    const channels = getOpenChatChannels();
+    if (channels.length === 0) { showCustomAlert("Chat isn't connected to your call partner(s) yet.", "Not Connected"); return; }
     if (!file.type.startsWith('image/')) { showCustomAlert("Only image files can be sent in call chat.", "Unsupported File"); return; }
     const buffer = await file.arrayBuffer();
     const transferId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`);
     const totalChunks = Math.ceil(buffer.byteLength / CALL_CHAT_CHUNK_SIZE) || 1;
-    callChatChannel.send(JSON.stringify({ kind: 'file-start', transferId, name: file.name, mime: file.type, size: buffer.byteLength, totalChunks }));
+    const startMsg = JSON.stringify({ kind: 'file-start', transferId, name: file.name, mime: file.type, size: buffer.byteLength, totalChunks, from: username });
+    channels.forEach(ch => { try { ch.send(startMsg); } catch(e){} });
     for (let i = 0; i < totalChunks; i++) {
       const chunk = buffer.slice(i * CALL_CHAT_CHUNK_SIZE, (i + 1) * CALL_CHAT_CHUNK_SIZE);
-      // Small header so the receiver can route this binary chunk to the right transfer/index without JSON+base64 overhead.
       const header = new TextEncoder().encode(JSON.stringify({ t: transferId, i }));
       const framed = new Uint8Array(2 + header.length + chunk.byteLength);
       new DataView(framed.buffer).setUint16(0, header.length);
       framed.set(header, 2); framed.set(new Uint8Array(chunk), 2 + header.length);
-      callChatChannel.send(framed.buffer);
-      // Yield periodically so large images don't block the DataChannel's internal buffer or the main thread.
+      channels.forEach(ch => { try { ch.send(framed.buffer); } catch(e){} });
       if (i % 8 === 7) await new Promise(r => setTimeout(r, 0));
     }
-    // Show our own copy locally without waiting on the network.
     const localUrl = URL.createObjectURL(file); callChatObjectUrls.add(localUrl);
     appendCallChatMessage({ type: 'image', url: localUrl, name: file.name, own: true, ts: Date.now() });
   }
 
-  function handleCallChatIncoming(data) {
+
+  function handleCallChatIncoming(data, fromUser) {
     if (typeof data === 'string') {
       let msg; try { msg = JSON.parse(data); } catch (e) { return; }
-      if (msg.kind === 'text') appendCallChatMessage({ type: 'text', text: msg.text, own: false, ts: Date.now() });
-      else if (msg.kind === 'file-start') callChatIncomingFiles[msg.transferId] = { name: msg.name, mime: msg.mime, size: msg.size, totalChunks: msg.totalChunks, chunks: new Array(msg.totalChunks) };
+      if (msg.kind === 'text') appendCallChatMessage({ type: 'text', text: msg.text, own: false, from: msg.from || fromUser, ts: Date.now() });
+      else if (msg.kind === 'file-start') callChatIncomingFiles[msg.transferId] = { name: msg.name, mime: msg.mime, size: msg.size, totalChunks: msg.totalChunks, chunks: new Array(msg.totalChunks), from: msg.from || fromUser };
       return;
     }
+
     // Binary chunk: [2-byte header length][JSON header][raw chunk bytes]
     const view = new DataView(data);
     const headerLen = view.getUint16(0);
@@ -2070,9 +2919,10 @@
     if (transfer.chunks.every(c => c)) {
       const blob = new Blob(transfer.chunks, { type: transfer.mime });
       const url = URL.createObjectURL(blob); callChatObjectUrls.add(url);
-      appendCallChatMessage({ type: 'image', url, name: transfer.name, own: false, ts: Date.now() });
+      appendCallChatMessage({ type: 'image', url, name: transfer.name, own: false, from: transfer.from, ts: Date.now() });
       delete callChatIncomingFiles[header.t];
     }
+
   }
 
   document.getElementById("callChatInput").addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") sendCallChatText(); });
@@ -2159,22 +3009,64 @@
   document.getElementById("remoteVideo").addEventListener("leavepictureinpicture", () => { pipWindow = null; });
 
   videoCallBtn.onclick = async (e) => {
-    e.stopPropagation(); if (currentContext.type !== 'dm') return;
-    const otherUser = currentContext.id; if (!otherUser || otherUser.toLowerCase() === username.toLowerCase() || activeCallId || startingCall) return;
-    startingCall = true;
-    try {
-      const existingEntry = Object.entries(allCalls).find(([cId, c]) => c && c.status !== 'ended' && c.caller && c.callee && ((c.caller.toLowerCase() === username.toLowerCase() && c.callee.toLowerCase() === otherUser.toLowerCase()) || (c.callee.toLowerCase() === username.toLowerCase() && c.caller.toLowerCase() === otherUser.toLowerCase())));
-      if (existingEntry) { const [cId, c] = existingEntry; if (c.callee.toLowerCase() === username.toLowerCase() && c.status === 'ringing') await acceptCall(cId); else await startWebRTC(cId, c.caller.toLowerCase() === username.toLowerCase()); return; }
-      const callId = "call_" + Date.now() + "_" + Math.floor(Math.random() * 1000); const target_dm = getCurrentTargetDm();
-      try { await set(ref(db, `calls/${callId}`), { caller: username, callee: otherUser, status: 'ringing', created_at: new Date().toISOString() }); } catch (err) { showCustomAlert("Could not start call.", "Network Error"); return; }
-      const text = `[VIDEOCALL:${callId}]`; try { const msgRef = push(ref(db, 'messages')); await set(msgRef, { username, message: text, target_dm, reply_to: "", client_id: callId, created_at: new Date().toISOString() }); } catch (err) {}
-      await startWebRTC(callId, true);
-    } finally { startingCall = false; }
+    e.stopPropagation();
+    if (activeCallId || startingCall) return;
+    if (currentContext.type === 'dm') {
+      const otherUser = currentContext.id; if (!otherUser || otherUser.toLowerCase() === username.toLowerCase()) return;
+      startingCall = true;
+      try {
+        const existingEntry = Object.entries(allCalls).find(([cId, c]) => c && c.status !== 'ended' && !c.type && c.caller && c.callee && ((c.caller.toLowerCase() === username.toLowerCase() && c.callee.toLowerCase() === otherUser.toLowerCase()) || (c.callee.toLowerCase() === username.toLowerCase() && c.caller.toLowerCase() === otherUser.toLowerCase())));
+        if (existingEntry) { const [cId, c] = existingEntry; if (c.callee.toLowerCase() === username.toLowerCase() && c.status === 'ringing') await acceptCall(cId); else await startWebRTC(cId, c.caller.toLowerCase() === username.toLowerCase()); return; }
+        const callId = "call_" + Date.now() + "_" + Math.floor(Math.random() * 1000); const target_dm = getCurrentTargetDm();
+        try { await set(ref(db, `calls/${callId}`), { caller: username, callee: otherUser, status: 'ringing', created_at: new Date().toISOString() }); } catch (err) { showCustomAlert("Could not start call.", "Network Error"); return; }
+        const text = `[VIDEOCALL:${callId}]`; try { const msgRef = push(ref(db, 'messages')); await set(msgRef, { username, message: text, target_dm, reply_to: "", client_id: callId, created_at: new Date().toISOString() }); } catch (err) {}
+        await startWebRTC(callId, true);
+      } finally { startingCall = false; }
+    } else if (currentContext.type === 'group') {
+      const groupId = currentContext.id;
+      const group = activeGroups[groupId];
+      if (!group || !group.members || group.members.length < 2) { showCustomAlert("Need at least one other person in the group.", "Can't start call"); return; }
+      startingCall = true;
+      try {
+        // Rejoin existing active group call for this group if any
+        const existingEntry = Object.entries(allCalls).find(([cId, c]) => c && c.type === 'group' && c.groupId === groupId && c.status !== 'ended');
+        if (existingEntry) {
+          const [cId] = existingEntry;
+          await startGroupWebRTC(cId, false);
+          return;
+        }
+        const callId = "gcall_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+        const members = group.members.slice();
+        const target_dm = getCurrentTargetDm();
+        try {
+          await set(ref(db, `calls/${callId}`), {
+            type: 'group',
+            groupId,
+            caller: username,
+            participants: members,
+            joined: { [username.toLowerCase().replace(/[.#$/\[\]]/g, "_")]: true },
+            status: 'active',
+            started_at: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          });
+        } catch (err) { showCustomAlert("Could not start group call.", "Network Error"); return; }
+        const text = `[VIDEOCALL:${callId}]`;
+        try { const msgRef = push(ref(db, 'messages')); await set(msgRef, { username, message: text, target_dm, reply_to: "", client_id: callId, created_at: new Date().toISOString() }); } catch (err) {}
+        await startGroupWebRTC(callId, true);
+      } finally { startingCall = false; }
+    }
   };
+
 
   function typingEnabledForContext() { return currentContext.type === 'dm' || currentContext.type === 'group'; }
   function getTypingKey() {
-    if (currentContext.type === 'dm') return `dm_${getDmRoomId(username, currentContext.id)}`;
+    if (currentContext.type === 'dm') {
+      // Fully sanitize so both sides always produce the exact same Firebase path
+      const a = (username || "").trim().toLowerCase().replace(/[.#$/\[\]:]/g, "_");
+      const b = (currentContext.id || "").trim().toLowerCase().replace(/[.#$/\[\]:]/g, "_");
+      const sorted = [a, b].sort().join("_");
+      return `dm_${sorted}`;
+    }
     if (currentContext.type === 'group') return `group_${currentContext.id}`;
     return null;
   }
@@ -2183,13 +3075,27 @@
     const typingKey = getTypingKey(); if (!typingKey) return;
     const sanitizedUser = username.toLowerCase().replace(/[.#$/\[\]]/g, "_");
     const typingRef = ref(db, `typing/${typingKey}/${sanitizedUser}`);
-    try { if (isTyping) await set(typingRef, true); else await set(typingRef, null); } catch (err) {}
+    try {
+      if (isTyping) await set(typingRef, true);
+      else await set(typingRef, null);
+    } catch (err) {}
   }
 
-  messageInput.addEventListener("input", () => {
+  function scheduleTypingOn() {
     if (!typingEnabledForContext()) return;
-    const now = Date.now(); if (now - lastTypingSentTime > 3000) { lastTypingSentTime = now; sendTypingSignal(true); }
-    if (typingTimeout) clearTimeout(typingTimeout); typingTimeout = setTimeout(() => { sendTypingSignal(false); }, 4000);
+    const now = Date.now();
+    if (now - lastTypingSentTime > 1500) {
+      lastTypingSentTime = now;
+      sendTypingSignal(true);
+    }
+    if (typingTimeout) clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => { sendTypingSignal(false); }, 3500);
+  }
+
+  messageInput.addEventListener("input", scheduleTypingOn);
+  // Backup: some browsers / IME combinations fire keydown more reliably than input for the first character
+  messageInput.addEventListener("keydown", (e) => {
+    if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) scheduleTypingOn();
   });
   
   /* PATCH: IMPROVED TYPING INDICATOR LOGIC */
@@ -2203,9 +3109,16 @@
 
     const activeTypers = Object.keys(typingData)
       .filter(u => u !== sanitizedMyUser && typingData[u])
-      .map(u => {
-        const prof = userProfiles[u];
-        return prof ? (prof.username || u) : u;
+      .map(san => {
+        // userProfiles is keyed by lowercased username; typing keys are sanitized
+        const match = Object.values(userProfiles).find(p => {
+          if (!p || !p.username) return false;
+          return p.username.toLowerCase().replace(/[.#$/\[\]]/g, "_") === san;
+        });
+        // Fallback: also try matching the lowercased key directly
+        if (match) return match.username;
+        const byKey = userProfiles[san] || userProfiles[san.replace(/_/g, "")];
+        return (byKey && byKey.username) ? byKey.username : san;
       });
 
     if (activeTypers.length > 0) {
@@ -2288,8 +3201,22 @@
       const creators = []; const coCreators = []; const editors = []; const members = []; if (server.creator) creators.push(server.creator);
       const memberMap = server.members || {}; Object.entries(memberMap).forEach(([sanitizedUser, data]) => { const uName = data.username || sanitizedUser; if (uName.toLowerCase() === (server.creator || "").toLowerCase()) return; if (data.role === 'co-creator') coCreators.push(uName); else if (data.role === 'editor') editors.push(uName); else members.push(uName); });
       renderMemberGroup("Creator — " + creators.length, creators, 'creator'); if (coCreators.length > 0) renderMemberGroup("Co-Creators — " + coCreators.length, coCreators, 'cocreator'); if (editors.length > 0) renderMemberGroup("Editors — " + editors.length, editors, 'editor'); renderMemberGroup("Members — " + members.length, members, 'member');
-    } else { const allUsers = Object.keys(userProfiles).filter(u => { if (isDev(u) && u.toLowerCase() !== username.toLowerCase()) return false; return true; }); renderMemberGroup("Direct Chat Members", allUsers, 'member'); }
+    } else if (currentContext.type === 'group' && currentContext.id) {
+      const group = activeGroups[currentContext.id];
+      if (!group) return;
+      const members = group.members || [];
+      // No + button here — add members via the group header / details modal instead
+      // First member is owner/creator
+      const owner = members[0] ? [members[0]] : [];
+      const rest = members.slice(1);
+      if (owner.length) renderMemberGroup("Owner — 1", owner, 'creator');
+      renderMemberGroup("Members — " + rest.length, rest, 'member');
+    } else {
+      const allUsers = Object.keys(userProfiles).filter(u => { if (isDev(u) && u.toLowerCase() !== username.toLowerCase()) return false; return true; });
+      renderMemberGroup("Direct Chat Members", allUsers, 'member');
+    }
   }
+
 
   function renderMemberGroup(title, userList, roleKey) {
     if (userList.length === 0) return;
@@ -2299,7 +3226,23 @@
       const item = document.createElement("div"); item.className = `member-item ${isOnline ? 'online' : ''}`; const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : ''; const initial = profile.avatar_url ? '' : escapeHtml(uName.charAt(0).toUpperCase());
       let badgeHtml = ''; if (roleKey === 'creator') badgeHtml = '<span class="role-badge role-creator">CREATOR</span>'; else if (roleKey === 'cocreator') badgeHtml = '<span class="role-badge role-cocreator">CO-CREATOR</span>'; else if (roleKey === 'editor') badgeHtml = '<span class="role-badge role-editor">EDITOR</span>';
       item.innerHTML = `<div class="dm-user-avatar" style="${avatarStyle}">${initial}<div class="status-dot ${status}"></div></div><span class="member-name">${escapeHtml(uName)} ${getDevBadgeHTML(uName)}</span>${badgeHtml}`;
-      item.onclick = (e) => { e.stopPropagation(); const myRole = getUserServerRole(currentServerId, username); if (currentView === 'server' && (myRole === 'creator' || myRole === 'co-creator' || isDev(username)) && uName.toLowerCase() !== username.toLowerCase()) { activeTargetMemberUser = uName; openMemberRoleMenu(e.clientX, e.clientY); } else openProfileCard(uName); };
+      item.onclick = (e) => {
+        e.stopPropagation();
+        if (currentContext.type === 'group' && currentContext.id) {
+          const group = activeGroups[currentContext.id];
+          if (group && canManageGroup(group, username) && uName.toLowerCase() !== username.toLowerCase()) {
+            activeTargetMemberUser = uName;
+            openGroupMemberMenu(e.clientX, e.clientY, currentContext.id);
+            return;
+          }
+        }
+        const myRole = getUserServerRole(currentServerId, username);
+        if (currentView === 'server' && (myRole === 'creator' || myRole === 'co-creator' || isDev(username)) && uName.toLowerCase() !== username.toLowerCase()) {
+          activeTargetMemberUser = uName; openMemberRoleMenu(e.clientX, e.clientY);
+        } else openProfileCard(uName);
+      };
+
+
       memberListContent.appendChild(item);
     });
   }
@@ -2343,17 +3286,23 @@
   document.getElementById("confirmCreateGroupBtn").onclick = async () => {
     if (selectedGroupUsers.size === 0) return showCustomAlert("Select at least one user.", "Error");
     const membersList = [username, ...Array.from(selectedGroupUsers)]; const newGroupRef = push(ref(db, 'groups'));
-    try { await set(newGroupRef, { members: membersList, created_at: new Date().toISOString() }); document.getElementById("createGroupModal").classList.add("hidden"); switchContext('group', newGroupRef.key); } catch (err) { showCustomAlert("Failed to create group.", "Error"); }
+    try {
+      await set(newGroupRef, { members: membersList, creator: username, name: "", created_at: new Date().toISOString() });
+      document.getElementById("createGroupModal").classList.add("hidden");
+      switchContext('group', newGroupRef.key);
+    } catch (err) { showCustomAlert("Failed to create group.", "Error"); }
+
   };
   
   function openGroupDetailsModal(groupId) {
-    const group = activeGroups[groupId]; if (!group) return; const members = group.members || []; const canManage = members[0]?.toLowerCase() === username.toLowerCase() || isDev(username);
+    const group = activeGroups[groupId]; if (!group) return; const members = group.members || []; const canManage = canManageGroup(group, username);
+
     const listEl = document.getElementById("groupMembersDetailList"); listEl.innerHTML = "";
     members.forEach(mUser => {
       const profile = userProfiles[mUser.toLowerCase()] || {}; const status = getUserStatus(mUser); const item = document.createElement("div"); item.className = "user-select-item"; const avatarStyle = profile.avatar_url ? `background-image: url('${profile.avatar_url}');` : ''; const initial = profile.avatar_url ? '' : escapeHtml(mUser.charAt(0).toUpperCase());
       let removeBtnHtml = (canManage && mUser.toLowerCase() !== username.toLowerCase()) ? `<button class="remove-btn" style="background:transparent; color:#f23f43; border:none; cursor:pointer; font-size:12px; padding: 4px;">Remove</button>` : "";
       item.innerHTML = `<div class="dm-user-avatar" style="${avatarStyle}">${initial}<div class="status-dot ${status}"></div></div><span style="flex:1;">${escapeHtml(mUser)} ${getDevBadgeHTML(mUser)}</span><span style="font-size:12px; color:#949ba4; margin-right: 8px;">${status}</span>${removeBtnHtml}`;
-      if (canManage && mUser.toLowerCase() !== username.toLowerCase()) { item.querySelector('.remove-btn').onclick = async (e) => { e.stopPropagation(); if (confirm(`Remove ${mUser}?`)) { const newMembers = members.filter(m => m.toLowerCase() !== mUser.toLowerCase()); await update(ref(db, `groups/${groupId}`), { members: newMembers }); openGroupDetailsModal(groupId); } }; }
+      if (canManage && mUser.toLowerCase() !== username.toLowerCase()) { item.querySelector('.remove-btn').onclick = async (e) => { e.stopPropagation(); const ok = await showCustomConfirm(`Remove ${mUser} from this group?`, "Remove Member"); if (ok) { const newMembers = members.filter(m => m.toLowerCase() !== mUser.toLowerCase()); await update(ref(db, `groups/${groupId}`), { members: newMembers }); openGroupDetailsModal(groupId); } }; }
       else item.onclick = () => { document.getElementById("groupDetailsModal").classList.add("hidden"); openProfileCard(mUser); };
       listEl.appendChild(item);
     });
@@ -2361,9 +3310,19 @@
     if (canManage) {
       addSection.classList.remove("hidden"); document.getElementById("groupAddUserBtn").onclick = async () => {
         const newUser = document.getElementById("groupAddUserInput").value.trim(); if (!newUser) return;
-        const targetLower = newUser.toLowerCase(); if (!Object.keys(userProfiles).some(u => u.toLowerCase() === targetLower)) return showCustomAlert(`User does not exist.`, "User Not Found");
+        const targetLower = newUser.toLowerCase();
+        const matchKey = Object.keys(userProfiles).find(u => u.toLowerCase() === targetLower);
+        if (!matchKey) return showCustomAlert(`User does not exist.`, "User Not Found");
         if (members.map(m => m.toLowerCase()).includes(targetLower)) return showCustomAlert("User is already in the group.", "Wait!");
-        await update(ref(db, `groups/${groupId}`), { members: [...members, newUser] }); document.getElementById("groupAddUserInput").value = ""; openGroupDetailsModal(groupId);
+        const realName = (userProfiles[matchKey] && userProfiles[matchKey].username) || newUser;
+        try {
+          await update(ref(db, `groups/${groupId}`), { members: [...members, realName] });
+          document.getElementById("groupAddUserInput").value = "";
+          showCustomAlert(`Added ${realName}!`, "Success");
+          openGroupDetailsModal(groupId);
+        } catch (err) {
+          showCustomAlert("Failed to add member.", "Error");
+        }
       };
     } else addSection.classList.add("hidden");
     document.getElementById("groupDetailsModal").classList.remove("hidden");
@@ -2386,6 +3345,8 @@
   function getMsgDomId(msg) { const rawId = msg.client_id ? `client_${msg.client_id}` : (msg.id || msg.localId || `${msg.username}_${msg.created_at}`); return `msg_${String(rawId).replace(/[^a-zA-Z0-9_-]/g, '_')}`; }
   function attachMessageClickHandlers(div) {
     div.onclick = (e) => {
+      // Don't open context menu when clicking interactive buttons/links inside the message
+      if (e.target.closest("button, a, .server-invite-join-btn, [data-action]")) return;
       e.stopPropagation(); const msg = div._msgData; if (!msg) return;
       const latestMsg = cachedMessages.find(m => (msg.id && m.id === msg.id) || (msg.client_id && m.client_id === msg.client_id)) || msg; activeContextMsg = latestMsg; reactEmojiBar.classList.add("hidden");
       const isOwn = latestMsg.username && latestMsg.username.toLowerCase() === username.toLowerCase(); const hasId = latestMsg.id && !latestMsg.id.startsWith("pending_"); const isCall = typeof latestMsg.message === 'string' && latestMsg.message.startsWith('[VIDEOCALL:');
@@ -2453,10 +3414,27 @@
   popoverBioInput.addEventListener("change", async (e) => { if (activeProfileUser?.toLowerCase() === username.toLowerCase()) try { await update(ref(db, `users/${username.toLowerCase().replace(/[.#$/\[\]]/g, "_")}`), { bio: e.target.value.trim() }); } catch (err) {} });
   
   function updateHeaderAvatar() {
-    const container = document.getElementById("headerAvatar"); const otherUser = currentContext.type === 'dm' ? currentContext.id : ""; if (!otherUser) return;
-    const profile = userProfiles[otherUser.toLowerCase()] || {}; if (profile.avatar_url) { container.style.backgroundImage = `url('${profile.avatar_url}')`; container.textContent = ""; }
-    else { container.style.backgroundImage = "none"; container.textContent = otherUser.charAt(0).toUpperCase(); }
-    container.onclick = (e) => { e.stopPropagation(); openProfileCard(otherUser); };
+    const container = document.getElementById("headerAvatar");
+    if (!container) return;
+    if (currentContext.type === 'dm') {
+      const otherUser = currentContext.id;
+      if (!otherUser) return;
+      const profile = userProfiles[otherUser.toLowerCase()] || {};
+      if (profile.avatar_url) { container.style.backgroundImage = `url('${profile.avatar_url}')`; container.textContent = ""; }
+      else { container.style.backgroundImage = "none"; container.textContent = otherUser.charAt(0).toUpperCase(); }
+      container.onclick = (e) => { e.stopPropagation(); openProfileCard(otherUser); };
+    } else if (currentContext.type === 'group') {
+      const group = activeGroups[currentContext.id] || {};
+      const title = group.name || formatGroupName(group.members || []) || "G";
+      if (group.icon) {
+        container.style.backgroundImage = `url('${group.icon}')`;
+        container.textContent = "";
+      } else {
+        container.style.backgroundImage = "none";
+        container.textContent = title.charAt(0).toUpperCase();
+      }
+      container.onclick = (e) => { e.stopPropagation(); openGroupDetailsModal(currentContext.id); };
+    }
   }
 
   function populateUserSelectList() {
